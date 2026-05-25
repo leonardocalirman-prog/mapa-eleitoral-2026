@@ -140,5 +140,5 @@ Eleições presidenciais afetam variáveis relevantes para o mercado: prêmio de
 
 ## Autor
 
-Leo Wandersman, economista.
+Leonardo Wandersman, economista.
 
