@@ -1,0 +1,399 @@
+---
+title: "Nowcast Eleitoral 2026"
+format:
+  dashboard:
+    orientation: rows
+    nav-buttons:
+      - icon: github
+        href: https://github.com/leonardocalirman-prog/mapa-eleitoral-2026
+execute:
+  echo: false
+---
+
+```{ojs}
+//| output: false
+resultados = FileAttachment("data/resultados_2022.json").json()
+geojson    = FileAttachment("data/br_states.geojson").json()
+pesquisas  = FileAttachment("data/pesquisas_mediana.json").json()
+backtest   = FileAttachment("data/backtest_2018_2022.json").json()
+margem_2022_nacional = 5.2
+```
+
+```{ojs}
+//| output: false
+// Convencao BR: vermelho = esquerda (PT), azul = direita.
+THRESHOLDS = [
+  { min:  20, classe: "solido_esq",   label: "Sólido esquerda",   cor: "#C8102E" },
+  { min:   5, classe: "provavel_esq", label: "Provável esquerda", cor: "#E88B8B" },
+  { min:  -5, classe: "competitivo",  label: "Competitivo",       cor: "#B4B2A9" },
+  { min: -20, classe: "provavel_dir", label: "Provável direita",  cor: "#5B8FB9" },
+  { min:-999, classe: "solido_dir",   label: "Sólido direita",    cor: "#1F3A8A" },
+]
+COR_ESQ = "#C8102E"
+COR_DIR = "#1F3A8A"
+```
+
+# Simulador
+
+## {.sidebar width="320"}
+
+Mova os sliders para simular cenários. Default = resultado 2022.
+
+```{ojs}
+viewof swingNac = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Swing nacional (pp)" })
+```
+
+```{ojs}
+viewof usarRegional = Inputs.toggle({ label: "Aplicar heterogeneidade regional (2018→2022)", value: false })
+```
+
+```{ojs}
+viewof usarPesquisa = Inputs.toggle({ label: "Usar swing das pesquisas (sobrepõe)", value: false })
+```
+
+```{ojs}
+viewof migOutros = Inputs.range([0, 100], { value: 60, step: 5, label: "% Outros → Esquerda (2T)" })
+```
+
+**Ajustes regionais (pp)** — soma sobre o swing acima.
+
+```{ojs}
+viewof ajN = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Norte" })
+```
+
+```{ojs}
+viewof ajNE = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Nordeste" })
+```
+
+```{ojs}
+viewof ajCO = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Centro-Oeste" })
+```
+
+```{ojs}
+viewof ajSE = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Sudeste" })
+```
+
+```{ojs}
+viewof ajS = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Sul" })
+```
+
+```{ojs}
+//| output: false
+// swingPorRegiao: swing efetivo aplicado a cada UF, por regiao.
+// Prioridade: pesquisas (uniforme) > heterogeneidade regional > slider nacional.
+// Quando 'usarRegional' eh ligado, aplica o DESVIO regional observado (2018->2022)
+// somado ao swing nacional escolhido pelo usuario. Isso captura heterogeneidade
+// historica sem inflar margem nacional.
+swingPorRegiao = {
+  const REGIOES = ["N", "NE", "CO", "SE", "S"]
+  if (usarPesquisa && pesquisas && pesquisas.margem !== null) {
+    const s = Math.round((pesquisas.margem - margem_2022_nacional) * 10) / 10
+    return Object.fromEntries(REGIOES.map(r => [r, s]))
+  }
+  if (usarRegional && backtest && backtest.swings_regionais) {
+    return Object.fromEntries(REGIOES.map(r => {
+      const desvio = backtest.swings_regionais[r].swing_observado - backtest.swing_nacional_observado
+      return [r, Math.round((swingNac + desvio) * 10) / 10]
+    }))
+  }
+  return Object.fromEntries(REGIOES.map(r => [r, swingNac]))
+}
+```
+
+```{ojs}
+//| output: false
+margens = {
+  const ajustes = { N: ajN, NE: ajNE, CO: ajCO, SE: ajSE, S: ajS }
+  return resultados.map(r => {
+    const sw  = swingPorRegiao[r.regiao] || 0
+    const reg = ajustes[r.regiao] || 0
+    const m   = r.margem_2022 + sw + reg
+    let cls   = THRESHOLDS[THRESHOLDS.length - 1]
+    for (const t of THRESHOLDS) { if (m > t.min) { cls = t; break } }
+    return Object.assign({}, r, {
+      swing: sw,
+      ajuste_regiao: reg,
+      margem_estimada: Math.round(m * 10) / 10,
+      classe: cls.classe, label: cls.label, cor: cls.cor,
+    })
+  })
+}
+margens_por_uf = new Map(margens.map(d => [d.uf, d]))
+
+counts = {
+  return {
+    solido_esq:   margens.filter(d => d.classe === "solido_esq").length,
+    provavel_esq: margens.filter(d => d.classe === "provavel_esq").length,
+    competitivo:  margens.filter(d => d.classe === "competitivo").length,
+    provavel_dir: margens.filter(d => d.classe === "provavel_dir").length,
+    solido_dir:   margens.filter(d => d.classe === "solido_dir").length,
+  }
+}
+
+resumo_nacional = {
+  const total = margens.reduce((s, d) => s + d.votos_validos, 0)
+  let lula_w = 0, bolso_w = 0
+  for (const d of margens) {
+    const outros = 100 - d.lula_2022 - d.bolso_2022
+    lula_w  += ((100 - outros + d.margem_estimada) / 2) * d.votos_validos
+    bolso_w += ((100 - outros - d.margem_estimada) / 2) * d.votos_validos
+  }
+  return { lula: lula_w / total, bolso: bolso_w / total, margem_nacional: (lula_w - bolso_w) / total }
+}
+
+projecao_2t = {
+  const total = margens.reduce((s, d) => s + d.votos_validos, 0)
+  let esq_w = 0, dir_w = 0
+  const fEsq = migOutros / 100
+  for (const d of margens) {
+    const outros   = 100 - d.lula_2022 - d.bolso_2022
+    const lula_1t  = (100 - outros + d.margem_estimada) / 2
+    const bolso_1t = (100 - outros - d.margem_estimada) / 2
+    const esq_2t   = lula_1t  + outros * fEsq
+    const dir_2t   = bolso_1t + outros * (1 - fEsq)
+    esq_w += esq_2t * d.votos_validos
+    dir_w += dir_2t * d.votos_validos
+  }
+  return { esq: esq_w / total, dir: dir_w / total, margem: (esq_w - dir_w) / total }
+}
+
+decomposicao_regional = {
+  const total = margens.reduce((s, d) => s + d.votos_validos, 0)
+  const REGIOES = ["N", "NE", "CO", "SE", "S"]
+  const NOMES   = { N: "Norte", NE: "Nordeste", CO: "Centro-Oeste", SE: "Sudeste", S: "Sul" }
+  return REGIOES.map(reg => {
+    const ufs = margens.filter(d => d.regiao === reg)
+    const peso = ufs.reduce((s, d) => s + d.votos_validos, 0)
+    const margem_reg = ufs.reduce((s, d) => s + d.margem_estimada * d.votos_validos, 0) / peso
+    const contribuicao = margem_reg * (peso / total)
+    return {
+      regiao: reg, nome: NOMES[reg],
+      margem_regional: Math.round(margem_reg * 10) / 10,
+      peso_pct: Math.round((peso / total) * 1000) / 10,
+      contribuicao_pp: Math.round(contribuicao * 10) / 10,
+    }
+  })
+}
+```
+
+## Row {height="140px"}
+
+::: {.valuebox icon="graph-up-arrow" color="primary"}
+Margem nacional 1T (pp)
+
+`{ojs} Math.round(resumo_nacional.margem_nacional * 10) / 10`
+:::
+
+::: {.valuebox icon="trophy-fill" color="info"}
+Projeção 2T (pp)
+
+`{ojs} Math.round(projecao_2t.margem * 10) / 10`
+:::
+
+::: {.valuebox icon="map-fill" color="secondary"}
+UFs Esq / Comp / Dir
+
+`{ojs} (counts.solido_esq + counts.provavel_esq) + " / " + counts.competitivo + " / " + (counts.solido_dir + counts.provavel_dir)`
+:::
+
+## Row
+
+### Column {width="55%"}
+
+#### Mapa estimado por UF
+
+```{ojs}
+Plot.plot({
+  projection: { type: "mercator", domain: geojson },
+  width: 640,
+  height: 470,
+  marks: [
+    Plot.geo(geojson, {
+      fill: d => (margens_por_uf.get(d.id) || {}).cor || "#eee",
+      stroke: "white",
+      strokeWidth: 0.7,
+      title: d => {
+        const m = margens_por_uf.get(d.id)
+        if (!m) return d.id
+        const s = (x) => (x >= 0 ? "+" : "") + Number(x).toFixed(1)
+        return m.nome + " (" + m.uf + ")"
+          + "\n2022: " + s(m.margem_2022) + " pp"
+          + "\nSwing aplicado: " + s(m.swing) + " pp"
+          + "\nAjuste regiao: " + s(m.ajuste_regiao) + " pp"
+          + "\nMargem estimada: " + s(m.margem_estimada) + " pp"
+          + "\n=> " + m.label
+      }
+    })
+  ]
+})
+```
+
+### Column {width="45%"}
+
+#### Cenário simulado {height="60%"}
+
+```{ojs}
+md`**1º turno** — Esq **${resumo_nacional.lula.toFixed(1)}%** | Dir **${resumo_nacional.bolso.toFixed(1)}%** | Margem **${(resumo_nacional.margem_nacional >= 0 ? "+" : "") + resumo_nacional.margem_nacional.toFixed(1)} pp**
+
+**2º turno** (Outros → ${migOutros}% esq / ${100 - migOutros}% dir): Esq **${projecao_2t.esq.toFixed(1)}%** | Dir **${projecao_2t.dir.toFixed(1)}%**
+
+→ ${projecao_2t.margem >= 0 ? "**Esquerda vence**" : "**Direita vence**"} por **${Math.abs(projecao_2t.margem).toFixed(1)} pp**
+
+---
+
+**Distribuição UFs** — ${counts.solido_esq} sólidas esq · ${counts.provavel_esq} prováveis esq · ${counts.competitivo} competitivas · ${counts.provavel_dir} prováveis dir · ${counts.solido_dir} sólidas dir`
+```
+
+#### Pesquisas (mediana 30d) {height="40%"}
+
+```{ojs}
+{
+  if (pesquisas.erro) return md`*${pesquisas.erro}*`
+  if (pesquisas.esquerda === null) return md`*Rode \`python prep_data.py\` para popular.*`
+  const s = (x) => (x >= 0 ? "+" : "") + Number(x).toFixed(1)
+  const swing_imp = (pesquisas.margem - margem_2022_nacional)
+  return md`Esq **${pesquisas.esquerda.toFixed(1)}%** | Dir **${pesquisas.direita.toFixed(1)}%** | Margem **${s(pesquisas.margem)} pp** &nbsp; (${pesquisas.n_pesquisas} pesquisas)
+
+Swing implícito vs 2022: **${s(swing_imp)} pp**
+
+${usarPesquisa ? "✅ swing das pesquisas aplicado" : "_Marque o toggle na sidebar pra aplicar._"}`
+}
+```
+
+## Row
+
+### Column {width="55%"}
+
+#### Contribuição regional para a margem nacional (pp)
+
+```{ojs}
+Plot.plot({
+  width: 640, height: 240,
+  marginLeft: 110,
+  marginRight: 40,
+  x: { label: "Contribuição (pp)", grid: true, domain: [-12, 12], zero: true },
+  y: { label: null },
+  marks: [
+    Plot.barX(decomposicao_regional, {
+      x: "contribuicao_pp",
+      y: "nome",
+      sort: { y: "-x" },
+      fill: d => d.contribuicao_pp >= 0 ? COR_ESQ : COR_DIR,
+      title: d => `${d.nome}: ${d.contribuicao_pp >= 0 ? "+" : ""}${d.contribuicao_pp} pp\n(margem regional ${d.margem_regional >= 0 ? "+" : ""}${d.margem_regional}, peso ${d.peso_pct}%)`
+    }),
+    Plot.text(decomposicao_regional, {
+      x: "contribuicao_pp",
+      y: "nome",
+      text: d => (d.contribuicao_pp >= 0 ? "+" : "") + d.contribuicao_pp.toFixed(1),
+      dx: d => d.contribuicao_pp >= 0 ? 8 : -8,
+      textAnchor: d => d.contribuicao_pp >= 0 ? "start" : "end",
+      fontSize: 11, fill: "#222"
+    }),
+    Plot.ruleX([0])
+  ]
+})
+```
+
+### Column {width="45%"}
+
+#### UFs por margem estimada
+
+```{ojs}
+Inputs.table(
+  margens.slice().sort((a, b) => b.margem_estimada - a.margem_estimada).map(d => ({
+    UF: d.uf,
+    Reg: d.regiao,
+    "2022":   (d.margem_2022 >= 0 ? "+" : "") + d.margem_2022,
+    "Estim.": (d.margem_estimada >= 0 ? "+" : "") + d.margem_estimada.toFixed(1),
+    Class: d.label,
+  })),
+  { rows: 27, height: 240 }
+)
+```
+
+# Backtest 2018→2022
+
+## Row {height="140px"}
+
+::: {.valuebox icon="bullseye-1" color="primary"}
+MAE — Modelo A (swing nacional)
+
+`{ojs} backtest.modelo_A_nacional.mae_pp`
+:::
+
+::: {.valuebox icon="bullseye" color="success"}
+MAE — Modelo B (swing regional)
+
+`{ojs} backtest.modelo_B_regional.mae_pp`
+:::
+
+::: {.valuebox icon="arrow-down-circle-fill" color="success"}
+Ganho do Modelo B (pp ↓)
+
+`{ojs} Math.round((backtest.modelo_A_nacional.mae_pp - backtest.modelo_B_regional.mae_pp) * 10) / 10`
+:::
+
+::: {.valuebox icon="exclamation-triangle" color="warning"}
+Erro max — Modelo A (pp)
+
+`{ojs} backtest.modelo_A_nacional.max_erro_abs`
+:::
+
+## Row
+
+### Column {width="48%"}
+
+#### Como ler
+
+```{ojs}
+{
+  const A = backtest.modelo_A_nacional
+  const B = backtest.modelo_B_regional
+  const ganho_pct = Math.round((1 - B.mae_pp / A.mae_pp) * 100)
+  return md`**Premissa testada:** \`margem_uf(2022) = margem_uf(2018) + swing\`. Duas alternativas para o swing:
+
+  **Modelo A — Swing nacional uniforme** (+${backtest.swing_nacional_observado} pp aplicado a toda UF). MAE = **${A.mae_pp} pp**.
+
+  **Modelo B — Swing por região observado** (cada região recebe seu próprio swing 2018→2022). MAE = **${B.mae_pp} pp**.
+
+  **Ganho do Modelo B sobre A: −${(A.mae_pp - B.mae_pp).toFixed(1)} pp no MAE** (redução de **${ganho_pct}%**). Isso valida o desenho do dashboard: a heterogeneidade regional captura informação que o swing uniforme não enxerga.
+
+  **Implicação operacional:** o toggle _Aplicar heterogeneidade regional_ na aba Simulador soma os **desvios** observados (swing regional − swing nacional) ao swing escolhido. Os sliders por região seguem como ajustes finos.
+  `
+}
+```
+
+#### Swings regionais observados (2018→2022)
+
+```{ojs}
+Inputs.table(
+  Object.entries(backtest.swings_regionais).map(([reg, d]) => ({
+    Região: reg,
+    "Margem 2018": (d.margem_regional_2018 >= 0 ? "+" : "") + d.margem_regional_2018 + " pp",
+    "Margem 2022": (d.margem_regional_2022 >= 0 ? "+" : "") + d.margem_regional_2022 + " pp",
+    "Swing observado": (d.swing_observado >= 0 ? "+" : "") + d.swing_observado + " pp",
+    "Desvio vs nac.": (d.swing_observado - backtest.swing_nacional_observado >= 0 ? "+" : "") + (d.swing_observado - backtest.swing_nacional_observado).toFixed(1) + " pp",
+  })),
+  { rows: 5, height: 200 }
+)
+```
+
+### Column {width="52%"}
+
+#### UFs por erro absoluto (Modelo A vs B)
+
+```{ojs}
+Inputs.table(
+  backtest.erros_por_uf.map(u => ({
+    UF: u.uf,
+    Reg: u.regiao,
+    "2018": (u.margem_2018 >= 0 ? "+" : "") + u.margem_2018,
+    "Real 2022": (u.margem_2022_real >= 0 ? "+" : "") + u.margem_2022_real,
+    "A est.":   (u.estim_nacional >= 0 ? "+" : "") + u.estim_nacional.toFixed(1),
+    "A erro":   (u.erro_nacional >= 0 ? "+" : "") + u.erro_nacional.toFixed(1),
+    "B est.":   (u.estim_regional >= 0 ? "+" : "") + u.estim_regional.toFixed(1),
+    "B erro":   (u.erro_regional >= 0 ? "+" : "") + u.erro_regional.toFixed(1),
+  })),
+  { rows: 27, height: 480 }
+)
+```

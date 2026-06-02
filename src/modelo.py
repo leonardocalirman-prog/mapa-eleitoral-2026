@@ -1,81 +1,110 @@
-"""Lógica do nowcasting eleitoral por UF."""
+"""
+modelo.py — Lógica central do nowcasting eleitoral.
 
-from __future__ import annotations
+Fórmula V1:
+    margem_estimada(UF) = margem_2022(UF) + swing_nacional + ajuste_estadual
 
-from typing import Mapping
+Classificação:
+    > +20pp  → Sólido esquerda
+    +5 a +20 → Provável esquerda
+    -5 a +5  → Competitivo
+    -5 a -20 → Provável direita
+    < -20pp  → Sólido direita
+"""
 
 import pandas as pd
-
 from data.resultados_2022 import RESULTADOS_2022
 
 
-def classificar_margem(margem: float) -> tuple[str, int]:
-    """
-    Classifica a margem Lula - Bolsonaro em cinco buckets.
+THRESHOLDS = [
+    (+20, "solido_esq"),
+    (+5,  "provavel_esq"),
+    (-5,  "competitivo"),
+    (-20, "provavel_dir"),
+    (None,"solido_dir"),
+]
 
-    Retorna (label, ordem), onde ordem é usada para manter a legenda estável.
-    """
-    if margem > 20:
-        return "Sólido esquerda", 4
-    if margem > 5:
-        return "Provável esquerda", 3
-    if margem >= -5:
-        return "Competitivo", 2
-    if margem >= -20:
-        return "Provável direita", 1
-    return "Sólido direita", 0
+LABELS = {
+    "solido_esq":   "Sólido esquerda",
+    "provavel_esq": "Provável esquerda",
+    "competitivo":  "Competitivo",
+    "provavel_dir": "Provável direita",
+    "solido_dir":   "Sólido direita",
+}
+
+COLORS = {
+    "solido_esq":   "#185FA5",
+    "provavel_esq": "#85B7EB",
+    "competitivo":  "#B4B2A9",
+    "provavel_dir": "#F0997B",
+    "solido_dir":   "#993C1D",
+}
+
+
+def classificar(margem: float) -> str:
+    for limiar, classe in THRESHOLDS:
+        if limiar is None or margem > limiar:
+            return classe
+    return "solido_dir"
 
 
 def calcular_margens(
-    swing_nacional: float = -5.0,
-    ajustes_estaduais: Mapping[str, float] | None = None,
+    swing_nacional: float = 0.0,
+    ajustes_estaduais: dict | None = None
 ) -> pd.DataFrame:
     """
-    Calcula a margem estimada por UF.
+    Retorna DataFrame com margem estimada e classificação por UF.
 
-    Fórmula:
-        margem_estimada = margem_2022 + swing_nacional + ajuste_estadual
+    Parâmetros
+    ----------
+    swing_nacional : float
+        Variação uniforme em pontos percentuais aplicada a todas as UFs.
+        Positivo = melhor para esquerda; negativo = melhor para direita.
+    ajustes_estaduais : dict, opcional
+        Dicionário {UF: ajuste_pp} para ajustes específicos por estado.
+        Ex: {"SP": -3, "MG": +2}
 
-    Convenção:
-        margem positiva favorece esquerda/Lula.
-        margem negativa favorece direita/Bolsonaro.
+    Retorna
+    -------
+    pd.DataFrame com colunas:
+        uf, nome, regiao, margem_2022, swing_nacional, ajuste_estadual,
+        margem_estimada, classificacao, label, cor
     """
-    ajustes_estaduais = ajustes_estaduais or {}
+    if ajustes_estaduais is None:
+        ajustes_estaduais = {}
 
-    df = pd.DataFrame(RESULTADOS_2022)
-    df["margem_2022"] = df["lula_pct"] - df["bolsonaro_pct"]
-    df["ajuste_estadual"] = df["uf"].map(lambda uf: float(ajustes_estaduais.get(uf, 0.0)))
-    df["swing_nacional"] = float(swing_nacional)
-    df["margem_estimada"] = df["margem_2022"] + df["swing_nacional"] + df["ajuste_estadual"]
+    rows = []
+    for uf, d in RESULTADOS_2022.items():
+        ajuste_local = ajustes_estaduais.get(uf, 0.0)
+        margem_est   = d["margem"] + swing_nacional + ajuste_local
+        classe       = classificar(margem_est)
+        rows.append({
+            "uf":              uf,
+            "nome":            d["nome"],
+            "regiao":          d["regiao"],
+            "lula_2022":       d["lula"],
+            "bolso_2022":      d["bolso"],
+            "margem_2022":     d["margem"],
+            "swing_nacional":  swing_nacional,
+            "ajuste_estadual": ajuste_local,
+            "margem_estimada": round(margem_est, 1),
+            "classificacao":   classe,
+            "label":           LABELS[classe],
+            "cor":             COLORS[classe],
+        })
 
-    classificacoes = df["margem_estimada"].map(classificar_margem)
-    df["label"] = classificacoes.map(lambda x: x[0])
-    df["categoria_ordem"] = classificacoes.map(lambda x: x[1])
-
-    # Campos formatados para hover/terminal.
-    df["margem_2022_fmt"] = df["margem_2022"].map(lambda x: f"{x:+.1f} pp")
-    df["margem_estimada_fmt"] = df["margem_estimada"].map(lambda x: f"{x:+.1f} pp")
-    df["lula_pct_fmt"] = df["lula_pct"].map(lambda x: f"{x:.2f}%")
-    df["bolsonaro_pct_fmt"] = df["bolsonaro_pct"].map(lambda x: f"{x:.2f}%")
-
-    return df.sort_values("uf").reset_index(drop=True)
+    return pd.DataFrame(rows).sort_values("margem_estimada", ascending=False)
 
 
-def resumo(df: pd.DataFrame) -> dict[str, int]:
-    """Resumo agregado por bloco de classificação."""
-    counts = df["label"].value_counts().to_dict()
-    solido_esq = counts.get("Sólido esquerda", 0)
-    provavel_esq = counts.get("Provável esquerda", 0)
-    competitivo = counts.get("Competitivo", 0)
-    provavel_dir = counts.get("Provável direita", 0)
-    solido_dir = counts.get("Sólido direita", 0)
-
+def resumo(df: pd.DataFrame) -> dict:
+    """Agrega o DataFrame de margens em contagens por classificação."""
+    counts = df["classificacao"].value_counts().to_dict()
     return {
-        "solido_esq": solido_esq,
-        "provavel_esq": provavel_esq,
-        "competitivo": competitivo,
-        "provavel_dir": provavel_dir,
-        "solido_dir": solido_dir,
-        "total_esq": solido_esq + provavel_esq,
-        "total_dir": provavel_dir + solido_dir,
+        "solido_esq":   counts.get("solido_esq",   0),
+        "provavel_esq": counts.get("provavel_esq", 0),
+        "competitivo":  counts.get("competitivo",  0),
+        "provavel_dir": counts.get("provavel_dir", 0),
+        "solido_dir":   counts.get("solido_dir",   0),
+        "total_esq":    counts.get("solido_esq", 0) + counts.get("provavel_esq", 0),
+        "total_dir":    counts.get("solido_dir", 0) + counts.get("provavel_dir", 0),
     }

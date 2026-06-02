@@ -1,79 +1,116 @@
-# Mapa Eleitoral 2026: Nowcasting por UF
+# Mapa Eleitoral 2026 — Nowcasting por UF
 
-Um experimento de nowcasting eleitoral para o Brasil. O projeto transforma resultados estaduais de 2022 em um mapa interativo que permite simular swings nacionais e ajustes locais por UF.
+Um experimento de nowcasting eleitoral para o Brasil, visualizando a temperatura política por estado com metodologia simples, transparente e replicável.
 
-> Este é um exercício analítico de portfólio. Não é previsão eleitoral. O objetivo é organizar sinais disponíveis em uma leitura visual de risco político, com metodologia simples, transparente e replicável.
+> **Aviso:** Este é um exercício analítico de portfólio. Não é uma previsão eleitoral — o objetivo é organizar sinais disponíveis em uma leitura visual de risco político, não cravar um resultado.
 
-## O que o projeto faz
+---
 
-O mapa classifica cada estado em cinco categorias, de acordo com a margem estimada entre esquerda e direita.
+## O que é
+
+Um mapa interativo do Brasil por UF que classifica cada estado em cinco categorias:
 
 | Cor | Categoria | Critério |
-|---|---|---|
-| Vermelho escuro | Sólido esquerda | Margem estimada > +20 pp |
-| Vermelho claro | Provável esquerda | +5 a +20 pp |
-| Cinza | Competitivo | entre -5 e +5 pp |
-| Azul claro | Provável direita | -5 a -20 pp |
-| Azul escuro | Sólido direita | < -20 pp |
+|-----|-----------|----------|
+| 🔵 Azul escuro | Sólido esquerda | Margem estimada > +20 pp |
+| 🔵 Azul claro | Provável esquerda | +5 a +20 pp |
+| ⚫ Cinza | Competitivo | ±5 pp |
+| 🔴 Coral claro | Provável direita | -5 a -20 pp |
+| 🔴 Coral escuro | Sólido direita | < -20 pp |
 
-Convenção usada na V1: margem positiva favorece Lula/esquerda. Margem negativa favorece Bolsonaro/direita.
+---
 
 ## Metodologia
 
-A V1 usa uma regra de swing uniforme com possibilidade de ajuste estadual:
+### Fórmula V1
 
-```text
-margem_estimada(UF) = margem_2022(UF) + swing_nacional + ajuste_estadual(UF)
+```
+margem_estimada(UF) = margem_2022(UF) + swing_nacional + ajuste_estadual
 ```
 
-Onde:
+- **margem_2022**: diferença Lula% − Bolsonaro% no 1º turno de 2022, por UF (fonte: TSE)
+- **swing_nacional**: variação uniforme aplicada a todas as UFs, calibrável via parâmetro
+- **ajuste_estadual**: correção local opcional, quando há pesquisas estaduais disponíveis
 
-* `margem_2022`: diferença entre Lula% e Bolsonaro% no primeiro turno de 2022, por UF.
-* `swing_nacional`: deslocamento uniforme aplicado a todas as UFs, em pontos percentuais.
-* `ajuste_estadual`: correção local opcional, útil quando houver pesquisa estadual ou julgamento específico sobre a UF.
+### O que o modelo não faz (ainda)
 
-Exemplo: se uma UF teve Lula +10 pp em 2022, um swing nacional de -5 pp e ajuste local de +2 pp, a margem estimada fica em +7 pp.
+- Não modela o 2º turno
+- Não pesa pesquisas por recência
+- Não usa pesquisas estaduais individualmente
+- Não estima bandas de incerteza
 
-## O que a V1 ainda não faz
+Essas são as evoluções naturais da V2 — veja o roadmap abaixo.
 
-* Não modela segundo turno.
-* Não incorpora pesquisas estaduais automaticamente.
-* Não pesa pesquisas por recência, instituto ou tamanho amostral.
-* Não estima intervalos de confiança.
-* Não estima turnout, migração de votos entre candidatos ou voto útil.
+---
 
-Esses pontos entram naturalmente em versões futuras.
-
-## Como rodar
+## Instalação
 
 ```bash
-git clone https://github.com/SEU-USUARIO/mapa-eleitoral-2026.git
+git clone https://github.com/leonardocalirman-prog/mapa-eleitoral-2026.git
 cd mapa-eleitoral-2026
 pip install -r requirements.txt
+```
+
+Para o **dashboard interativo** instale também o Quarto CLI:
+https://quarto.org/docs/get-started/ (instalador nativo Windows/Mac/Linux).
+
+---
+
+## Uso
+
+### Dashboard interativo (Quarto + Observable JS)
+
+```bash
+# Gera dados de apoio (JSON + GeoJSON)
+python prep_data.py
+
+# Renderiza o dashboard (saída em docs/)
+quarto render
+
+# Preview em modo dev (recarrega ao salvar)
+quarto preview
+```
+
+O dashboard tem:
+- Slider de **swing nacional**
+- Sliders de **ajuste por região** (N, NE, CO, SE, S)
+- Sliders por UF (em painel colapsável)
+- Cards no header com totais por classificação
+- Composição nacional simulada (% esquerda × % direita, ponderada por votos válidos)
+- Mapa choropleth interativo
+- Tabela ordenada por margem estimada
+
+Default = resultado de 2022.
+
+### CLI estático (script Python original)
+
+```bash
+# Gera mapa com swing padrão de -5pp e abre no browser
 python main.py
-```
 
-### Com swing nacional customizado
-
-```bash
+# Swing customizado
 python main.py --swing -8
-```
 
-### Com ajustes estaduais específicos
-
-```bash
+# Com ajustes estaduais específicos (quando há pesquisas locais)
 python main.py --swing -5 --ajustes "SP=-3,MG=2,BA=1"
-```
 
-### Imprimindo a tabela no terminal
-
-```bash
+# Imprime tabela de margens no terminal
 python main.py --swing -5 --tabela --no-open
 ```
 
-## Exemplo de output
+### Scraper de pesquisas (Wikipedia)
 
-```text
+```bash
+python -m src.pesquisas
+```
+
+Baixa a tabela de pesquisas presidenciais 2026 da Wikipedia, agrupa
+candidatos por bloco (esquerda × direita), calcula mediana das últimas
+30 dias e imprime no terminal.
+
+### Exemplo de output no terminal
+
+```
 ── Mapa Eleitoral 2026 ──────────────────
   Swing nacional : -5.0 pp
 
@@ -84,61 +121,82 @@ python main.py --swing -5 --tabela --no-open
 Mapa exportado: output/mapa_eleitoral.html
 ```
 
-## Estrutura
+---
 
-```text
+## Estrutura do projeto
+
+```
 mapa-eleitoral-2026/
-├── main.py
+├── index.qmd                  # Dashboard Quarto (output principal)
+├── _quarto.yml                # Configuração do site Quarto
+├── prep_data.py               # Gera JSON/GeoJSON consumidos pelo dashboard
+├── main.py                    # CLI estática original
 ├── requirements.txt
 ├── data/
-│   ├── resultados_2022.py
-│   └── br_states.geojson
+│   ├── resultados_2022.py     # Resultados TSE 2022 por UF (fonte de verdade)
+│   ├── resultados_2022.json   # Gerado por prep_data.py (input do dashboard)
+│   └── br_states.geojson      # Malha estadual IBGE (cacheado em disco)
 ├── src/
-│   ├── modelo.py
-│   └── mapa.py
-├── docs/
-│   └── index.html
+│   ├── modelo.py              # Lógica do nowcasting (CLI)
+│   ├── mapa.py                # Choropleth Plotly (CLI)
+│   └── pesquisas.py           # Scraper de pesquisas presidenciais
+├── .github/workflows/
+│   └── publish.yml            # Renderiza Quarto e publica no GitHub Pages
+├── docs/                      # Saída do `quarto render` (servido pelo Pages)
 └── output/
-    └── mapa_eleitoral.html
+    └── mapa_eleitoral.html    # Saída do CLI estático
 ```
+
+---
 
 ## Fontes de dados
 
 | Dado | Fonte |
-|---|---|
-| Resultados eleitorais de 2022 | TSE, Portal de Dados Abertos, dataset Resultados 2022 |
-| Malha estadual | IBGE, API de malhas geográficas |
+|------|-------|
+| Resultados eleitorais 2022 | [TSE — Repositório de dados eleitorais](https://dadosabertos.tse.jus.br/) |
+| Malha estadual | [IBGE API de malhas geográficas](https://servicodados.ibge.gov.br/api/v3/malhas/estados) |
+| Pesquisas eleitorais | [TSE — Pesquisas eleitorais registradas](https://www.tse.jus.br/eleicoes/pesquisa-eleitoral-2) |
 
-A base eleitoral usada nesta V1 foi consolidada por UF a partir dos resultados oficiais do primeiro turno presidencial de 2022.
+---
 
 ## Roadmap
 
-### V1
+### V1 (atual)
+- [x] Resultado 2022 por UF
+- [x] Swing nacional parametrizável
+- [x] Mapa interativo HTML (Plotly)
+- [x] Classificação em 5 categorias
+- [x] Tooltip com detalhes por estado
 
-* Resultado presidencial de 2022 por UF.
-* Swing nacional parametrizável.
-* Ajustes estaduais opcionais.
-* Mapa interativo em HTML com Plotly.
-* Tooltip por estado com margem de 2022, swing, ajuste local e margem estimada.
-
-### V2
-
-* Ingestão de pesquisas estaduais registradas.
-* Peso por recência e qualidade da fonte.
-* Bandas de incerteza por UF.
-* Comparação visual entre 2022 e cenário estimado.
+### V2 (em curso)
+- [x] Dashboard interativo (Quarto + Observable JS)
+- [x] Sliders de swing nacional + ajuste por região + por UF
+- [x] Composição nacional ponderada por votos válidos
+- [x] Build automático via GitHub Actions
+- [x] Scraper de pesquisas da Wikipedia
+- [ ] Plugar mediana das pesquisas como swing sugerido no dashboard
+- [ ] Bandas de incerteza por UF
+- [ ] Cenários de 2º turno
 
 ### V3
+- [ ] Leitura macro acoplada: câmbio, juros, CDS por cenário eleitoral
+- [ ] Backtests com swing histórico (2018 → 2022)
+- [ ] API pública dos dados normalizados
 
-* Dashboard em Streamlit ou Dash.
-* Atualização automatizada via GitHub Actions.
-* Camada macro para conectar cenário eleitoral com câmbio, juros, risco fiscal e rotação setorial.
+---
 
 ## Contexto macro
 
-Eleições presidenciais afetam variáveis relevantes para o mercado: prêmio de risco fiscal, câmbio, curva de juros e percepção de estabilidade institucional. Este mapa funciona como uma camada visual para acompanhar assimetrias regionais e simular cenários políticos de maneira transparente.
+Eleições presidenciais afetam diretamente variáveis de mercado: nível da taxa neutra de juros, prêmio de risco fiscal (CDS), dinâmica do câmbio e rotação setorial de ativos. Este mapa funciona como camada visual para acompanhar assimetrias regionais e simular cenários de risco político — complementando análises de renda fixa e câmbio.
+
+---
 
 ## Autor
 
-Leonardo Wandersman, economista.
+**Leonardo Wandersman** · Economista
+[GitHub](https://github.com/leonardocalirman-prog)
 
+---
+
+*Metodologia transparente, replicável e não-partidária.*  
+*Contribuições e correções são bem-vindas via PR.*

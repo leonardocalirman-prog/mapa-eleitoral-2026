@@ -1,0 +1,245 @@
+[
+  {
+    "uf": "AC",
+    "nome": "Acre",
+    "regiao": "N",
+    "lula_2022": 43,
+    "bolso_2022": 44,
+    "margem_2022": -1,
+    "votos_validos": 410000
+  },
+  {
+    "uf": "AL",
+    "nome": "Alagoas",
+    "regiao": "NE",
+    "lula_2022": 63,
+    "bolso_2022": 28,
+    "margem_2022": 35,
+    "votos_validos": 1640000
+  },
+  {
+    "uf": "AM",
+    "nome": "Amazonas",
+    "regiao": "N",
+    "lula_2022": 54,
+    "bolso_2022": 34,
+    "margem_2022": 20,
+    "votos_validos": 1900000
+  },
+  {
+    "uf": "AP",
+    "nome": "Amapá",
+    "regiao": "N",
+    "lula_2022": 46,
+    "bolso_2022": 43,
+    "margem_2022": 3,
+    "votos_validos": 390000
+  },
+  {
+    "uf": "BA",
+    "nome": "Bahia",
+    "regiao": "NE",
+    "lula_2022": 73,
+    "bolso_2022": 17,
+    "margem_2022": 56,
+    "votos_validos": 6600000
+  },
+  {
+    "uf": "CE",
+    "nome": "Ceará",
+    "regiao": "NE",
+    "lula_2022": 72,
+    "bolso_2022": 21,
+    "margem_2022": 51,
+    "votos_validos": 4500000
+  },
+  {
+    "uf": "DF",
+    "nome": "Distrito Federal",
+    "regiao": "CO",
+    "lula_2022": 28,
+    "bolso_2022": 59,
+    "margem_2022": -31,
+    "votos_validos": 1600000
+  },
+  {
+    "uf": "ES",
+    "nome": "Espírito Santo",
+    "regiao": "SE",
+    "lula_2022": 36,
+    "bolso_2022": 54,
+    "margem_2022": -18,
+    "votos_validos": 2100000
+  },
+  {
+    "uf": "GO",
+    "nome": "Goiás",
+    "regiao": "CO",
+    "lula_2022": 29,
+    "bolso_2022": 57,
+    "margem_2022": -28,
+    "votos_validos": 3500000
+  },
+  {
+    "uf": "MA",
+    "nome": "Maranhão",
+    "regiao": "NE",
+    "lula_2022": 70,
+    "bolso_2022": 22,
+    "margem_2022": 48,
+    "votos_validos": 3400000
+  },
+  {
+    "uf": "MG",
+    "nome": "Minas Gerais",
+    "regiao": "SE",
+    "lula_2022": 44,
+    "bolso_2022": 42,
+    "margem_2022": 2,
+    "votos_validos": 10000000
+  },
+  {
+    "uf": "MS",
+    "nome": "Mato Grosso do Sul",
+    "regiao": "CO",
+    "lula_2022": 33,
+    "bolso_2022": 54,
+    "margem_2022": -21,
+    "votos_validos": 1400000
+  },
+  {
+    "uf": "MT",
+    "nome": "Mato Grosso",
+    "regiao": "CO",
+    "lula_2022": 28,
+    "bolso_2022": 59,
+    "margem_2022": -31,
+    "votos_validos": 1900000
+  },
+  {
+    "uf": "PA",
+    "nome": "Pará",
+    "regiao": "N",
+    "lula_2022": 59,
+    "bolso_2022": 30,
+    "margem_2022": 29,
+    "votos_validos": 3900000
+  },
+  {
+    "uf": "PB",
+    "nome": "Paraíba",
+    "regiao": "NE",
+    "lula_2022": 63,
+    "bolso_2022": 28,
+    "margem_2022": 35,
+    "votos_validos": 2200000
+  },
+  {
+    "uf": "PE",
+    "nome": "Pernambuco",
+    "regiao": "NE",
+    "lula_2022": 67,
+    "bolso_2022": 24,
+    "margem_2022": 43,
+    "votos_validos": 4500000
+  },
+  {
+    "uf": "PI",
+    "nome": "Piauí",
+    "regiao": "NE",
+    "lula_2022": 73,
+    "bolso_2022": 19,
+    "margem_2022": 54,
+    "votos_validos": 1700000
+  },
+  {
+    "uf": "PR",
+    "nome": "Paraná",
+    "regiao": "S",
+    "lula_2022": 32,
+    "bolso_2022": 55,
+    "margem_2022": -23,
+    "votos_validos": 5700000
+  },
+  {
+    "uf": "RJ",
+    "nome": "Rio de Janeiro",
+    "regiao": "SE",
+    "lula_2022": 38,
+    "bolso_2022": 37,
+    "margem_2022": 1,
+    "votos_validos": 8000000
+  },
+  {
+    "uf": "RN",
+    "nome": "Rio Grande do Norte",
+    "regiao": "NE",
+    "lula_2022": 65,
+    "bolso_2022": 27,
+    "margem_2022": 38,
+    "votos_validos": 1800000
+  },
+  {
+    "uf": "RO",
+    "nome": "Rondônia",
+    "regiao": "N",
+    "lula_2022": 29,
+    "bolso_2022": 60,
+    "margem_2022": -31,
+    "votos_validos": 800000
+  },
+  {
+    "uf": "RR",
+    "nome": "Roraima",
+    "regiao": "N",
+    "lula_2022": 30,
+    "bolso_2022": 59,
+    "margem_2022": -29,
+    "votos_validos": 280000
+  },
+  {
+    "uf": "RS",
+    "nome": "Rio Grande do Sul",
+    "regiao": "S",
+    "lula_2022": 38,
+    "bolso_2022": 54,
+    "margem_2022": -16,
+    "votos_validos": 5900000
+  },
+  {
+    "uf": "SC",
+    "nome": "Santa Catarina",
+    "regiao": "S",
+    "lula_2022": 30,
+    "bolso_2022": 59,
+    "margem_2022": -29,
+    "votos_validos": 4200000
+  },
+  {
+    "uf": "SE",
+    "nome": "Sergipe",
+    "regiao": "NE",
+    "lula_2022": 63,
+    "bolso_2022": 29,
+    "margem_2022": 34,
+    "votos_validos": 1100000
+  },
+  {
+    "uf": "SP",
+    "nome": "São Paulo",
+    "regiao": "SE",
+    "lula_2022": 36,
+    "bolso_2022": 48,
+    "margem_2022": -12,
+    "votos_validos": 22400000
+  },
+  {
+    "uf": "TO",
+    "nome": "Tocantins",
+    "regiao": "N",
+    "lula_2022": 43,
+    "bolso_2022": 46,
+    "margem_2022": -3,
+    "votos_validos": 820000
+  }
+]

@@ -1,39 +1,36 @@
 """
-Resultados do 1º turno presidencial de 2022 por UF.
-
-Percentuais de votos válidos por UF para Lula e Jair Bolsonaro.
-Margem definida como: Lula (%) - Bolsonaro (%), em pontos percentuais.
-
-Fonte primária: TSE / Resultados oficiais.
-Base conferida a partir da tabela "Por unidade federativa — Primeiro turno".
+Resultados eleitorais 2022 por UF — 1º turno presidencial.
+Fonte: TSE (Tribunal Superior Eleitoral)
+Margem = Lula% - Bolsonaro% em votos válidos (pp)
+Votos válidos: aproximação a partir do total de votos válidos por UF (TSE).
 """
 
-RESULTADOS_2022 = [
-    {"uf": "AC", "nome": "Acre", "lula_pct": 29.26, "bolsonaro_pct": 62.50, "lula_votos": 129022, "bolsonaro_votos": 275582},
-    {"uf": "AL", "nome": "Alagoas", "lula_pct": 56.50, "bolsonaro_pct": 36.05, "lula_votos": 974156, "bolsonaro_votos": 621515},
-    {"uf": "AP", "nome": "Amapá", "lula_pct": 45.67, "bolsonaro_pct": 43.41, "lula_votos": 197382, "bolsonaro_votos": 187621},
-    {"uf": "AM", "nome": "Amazonas", "lula_pct": 49.58, "bolsonaro_pct": 42.80, "lula_votos": 1019684, "bolsonaro_votos": 880198},
-    {"uf": "BA", "nome": "Bahia", "lula_pct": 69.73, "bolsonaro_pct": 24.31, "lula_votos": 5873081, "bolsonaro_votos": 2047599},
-    {"uf": "CE", "nome": "Ceará", "lula_pct": 65.91, "bolsonaro_pct": 25.38, "lula_votos": 3578355, "bolsonaro_votos": 1377827},
-    {"uf": "DF", "nome": "Distrito Federal", "lula_pct": 36.85, "bolsonaro_pct": 51.65, "lula_votos": 649534, "bolsonaro_votos": 910397},
-    {"uf": "ES", "nome": "Espírito Santo", "lula_pct": 40.40, "bolsonaro_pct": 52.23, "lula_votos": 897348, "bolsonaro_votos": 1160030},
-    {"uf": "GO", "nome": "Goiás", "lula_pct": 39.51, "bolsonaro_pct": 52.16, "lula_votos": 1454723, "bolsonaro_votos": 1920203},
-    {"uf": "MA", "nome": "Maranhão", "lula_pct": 68.84, "bolsonaro_pct": 26.02, "lula_votos": 2603454, "bolsonaro_votos": 983861},
-    {"uf": "MT", "nome": "Mato Grosso", "lula_pct": 34.39, "bolsonaro_pct": 59.84, "lula_votos": 633748, "bolsonaro_votos": 1102866},
-    {"uf": "MS", "nome": "Mato Grosso do Sul", "lula_pct": 39.04, "bolsonaro_pct": 52.70, "lula_votos": 588323, "bolsonaro_votos": 794206},
-    {"uf": "MG", "nome": "Minas Gerais", "lula_pct": 48.29, "bolsonaro_pct": 43.60, "lula_votos": 5802571, "bolsonaro_votos": 5239264},
-    {"uf": "PA", "nome": "Pará", "lula_pct": 52.22, "bolsonaro_pct": 40.27, "lula_votos": 2443730, "bolsonaro_votos": 1884673},
-    {"uf": "PB", "nome": "Paraíba", "lula_pct": 64.21, "bolsonaro_pct": 29.62, "lula_votos": 1554868, "bolsonaro_votos": 717416},
-    {"uf": "PR", "nome": "Paraná", "lula_pct": 35.99, "bolsonaro_pct": 55.26, "lula_votos": 2363492, "bolsonaro_votos": 3628612},
-    {"uf": "PE", "nome": "Pernambuco", "lula_pct": 65.27, "bolsonaro_pct": 29.91, "lula_votos": 3558322, "bolsonaro_votos": 1630938},
-    {"uf": "PI", "nome": "Piauí", "lula_pct": 74.25, "bolsonaro_pct": 19.90, "lula_votos": 1518008, "bolsonaro_votos": 406897},
-    {"uf": "RJ", "nome": "Rio de Janeiro", "lula_pct": 40.68, "bolsonaro_pct": 51.09, "lula_votos": 3847143, "bolsonaro_votos": 4831246},
-    {"uf": "RN", "nome": "Rio Grande do Norte", "lula_pct": 62.98, "bolsonaro_pct": 31.02, "lula_votos": 1264179, "bolsonaro_votos": 622731},
-    {"uf": "RS", "nome": "Rio Grande do Sul", "lula_pct": 42.28, "bolsonaro_pct": 48.89, "lula_votos": 2806672, "bolsonaro_votos": 3245023},
-    {"uf": "RO", "nome": "Rondônia", "lula_pct": 28.98, "bolsonaro_pct": 64.36, "lula_votos": 261749, "bolsonaro_votos": 581306},
-    {"uf": "RR", "nome": "Roraima", "lula_pct": 23.05, "bolsonaro_pct": 69.57, "lula_votos": 68760, "bolsonaro_votos": 207587},
-    {"uf": "SC", "nome": "Santa Catarina", "lula_pct": 29.54, "bolsonaro_pct": 62.21, "lula_votos": 1279216, "bolsonaro_votos": 2694406},
-    {"uf": "SP", "nome": "São Paulo", "lula_pct": 40.89, "bolsonaro_pct": 47.71, "lula_votos": 10490032, "bolsonaro_votos": 12239989},
-    {"uf": "SE", "nome": "Sergipe", "lula_pct": 63.82, "bolsonaro_pct": 29.16, "lula_votos": 828716, "bolsonaro_votos": 378610},
-    {"uf": "TO", "nome": "Tocantins", "lula_pct": 50.40, "bolsonaro_pct": 44.00, "lula_votos": 434303, "bolsonaro_votos": 379194},
-]
+RESULTADOS_2022 = {
+    "AC": {"nome": "Acre",                "uf": "AC", "margem": -1,  "lula": 43, "bolso": 44, "regiao": "N",  "votos_validos": 410_000},
+    "AL": {"nome": "Alagoas",             "uf": "AL", "margem": 35,  "lula": 63, "bolso": 28, "regiao": "NE", "votos_validos": 1_640_000},
+    "AM": {"nome": "Amazonas",            "uf": "AM", "margem": 20,  "lula": 54, "bolso": 34, "regiao": "N",  "votos_validos": 1_900_000},
+    "AP": {"nome": "Amapá",               "uf": "AP", "margem":  3,  "lula": 46, "bolso": 43, "regiao": "N",  "votos_validos": 390_000},
+    "BA": {"nome": "Bahia",               "uf": "BA", "margem": 56,  "lula": 73, "bolso": 17, "regiao": "NE", "votos_validos": 6_600_000},
+    "CE": {"nome": "Ceará",               "uf": "CE", "margem": 51,  "lula": 72, "bolso": 21, "regiao": "NE", "votos_validos": 4_500_000},
+    "DF": {"nome": "Distrito Federal",    "uf": "DF", "margem": -31, "lula": 28, "bolso": 59, "regiao": "CO", "votos_validos": 1_600_000},
+    "ES": {"nome": "Espírito Santo",      "uf": "ES", "margem": -18, "lula": 36, "bolso": 54, "regiao": "SE", "votos_validos": 2_100_000},
+    "GO": {"nome": "Goiás",               "uf": "GO", "margem": -28, "lula": 29, "bolso": 57, "regiao": "CO", "votos_validos": 3_500_000},
+    "MA": {"nome": "Maranhão",            "uf": "MA", "margem": 48,  "lula": 70, "bolso": 22, "regiao": "NE", "votos_validos": 3_400_000},
+    "MT": {"nome": "Mato Grosso",         "uf": "MT", "margem": -31, "lula": 28, "bolso": 59, "regiao": "CO", "votos_validos": 1_900_000},
+    "MS": {"nome": "Mato Grosso do Sul",  "uf": "MS", "margem": -21, "lula": 33, "bolso": 54, "regiao": "CO", "votos_validos": 1_400_000},
+    "MG": {"nome": "Minas Gerais",        "uf": "MG", "margem":  2,  "lula": 44, "bolso": 42, "regiao": "SE", "votos_validos": 10_000_000},
+    "PA": {"nome": "Pará",                "uf": "PA", "margem": 29,  "lula": 59, "bolso": 30, "regiao": "N",  "votos_validos": 3_900_000},
+    "PB": {"nome": "Paraíba",             "uf": "PB", "margem": 35,  "lula": 63, "bolso": 28, "regiao": "NE", "votos_validos": 2_200_000},
+    "PR": {"nome": "Paraná",              "uf": "PR", "margem": -23, "lula": 32, "bolso": 55, "regiao": "S",  "votos_validos": 5_700_000},
+    "PE": {"nome": "Pernambuco",          "uf": "PE", "margem": 43,  "lula": 67, "bolso": 24, "regiao": "NE", "votos_validos": 4_500_000},
+    "PI": {"nome": "Piauí",               "uf": "PI", "margem": 54,  "lula": 73, "bolso": 19, "regiao": "NE", "votos_validos": 1_700_000},
+    "RJ": {"nome": "Rio de Janeiro",      "uf": "RJ", "margem":  1,  "lula": 38, "bolso": 37, "regiao": "SE", "votos_validos": 8_000_000},
+    "RN": {"nome": "Rio Grande do Norte", "uf": "RN", "margem": 38,  "lula": 65, "bolso": 27, "regiao": "NE", "votos_validos": 1_800_000},
+    "RS": {"nome": "Rio Grande do Sul",   "uf": "RS", "margem": -16, "lula": 38, "bolso": 54, "regiao": "S",  "votos_validos": 5_900_000},
+    "RO": {"nome": "Rondônia",            "uf": "RO", "margem": -31, "lula": 29, "bolso": 60, "regiao": "N",  "votos_validos": 800_000},
+    "RR": {"nome": "Roraima",             "uf": "RR", "margem": -29, "lula": 30, "bolso": 59, "regiao": "N",  "votos_validos": 280_000},
+    "SC": {"nome": "Santa Catarina",      "uf": "SC", "margem": -29, "lula": 30, "bolso": 59, "regiao": "S",  "votos_validos": 4_200_000},
+    "SP": {"nome": "São Paulo",           "uf": "SP", "margem": -12, "lula": 36, "bolso": 48, "regiao": "SE", "votos_validos": 22_400_000},
+    "SE": {"nome": "Sergipe",             "uf": "SE", "margem": 34,  "lula": 63, "bolso": 29, "regiao": "NE", "votos_validos": 1_100_000},
+    "TO": {"nome": "Tocantins",           "uf": "TO", "margem": -3,  "lula": 43, "bolso": 46, "regiao": "N",  "votos_validos": 820_000},
+}

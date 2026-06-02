@@ -1,0 +1,35 @@
+# _quarto.yml — Configuração do projeto Quarto.
+# Manda o `quarto render` saber: qual o tipo de projeto, onde colocar os
+# arquivos compilados, e parâmetros globais de tema/output.
+
+project:
+  type: website
+  output-dir: docs           # GitHub Pages serve daqui (branch main, pasta /docs)
+  resources:
+    - "data/*.json"          # garante que o JSON vai junto pro Pages
+    - "data/*.geojson"
+
+# Esses arquivos NÃO entram no render (são scripts internos)
+render:
+  - "index.qmd"
+
+website:
+  title: "Nowcast Eleitoral 2026"
+  description: "Mapa interativo de simulação eleitoral por UF, com ajustes regionais."
+  navbar:
+    background: light
+    right:
+      - icon: github
+        href: https://github.com/leonardocalirman-prog/mapa-eleitoral-2026
+        aria-label: GitHub
+
+format:
+  dashboard:
+    theme:
+      light: cosmo
+      dark: darkly
+    nav-buttons:
+      - icon: github
+        href: https://github.com/leonardocalirman-prog/mapa-eleitoral-2026
+    scrolling: false
+    expandable: true
