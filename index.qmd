@@ -252,7 +252,9 @@ md`**1º turno** — Esq **${resumo_nacional.lula.toFixed(1)}%** | Dir **${resum
   if (pesquisas.esquerda === null) return md`*Rode \`python prep_data.py\` para popular.*`
   const s = (x) => (x >= 0 ? "+" : "") + Number(x).toFixed(1)
   const swing_imp = (pesquisas.margem - margem_2022_nacional)
-  return md`Esq **${pesquisas.esquerda.toFixed(1)}%** | Dir **${pesquisas.direita.toFixed(1)}%** | Margem **${s(pesquisas.margem)} pp** &nbsp; (${pesquisas.n_pesquisas} pesquisas)
+  return md`**📊 Pesquisas — mediana ${pesquisas.n_pesquisas} institutos (30 dias)**
+
+Esq **${pesquisas.esquerda.toFixed(1)}%** &nbsp;|&nbsp; Dir **${pesquisas.direita.toFixed(1)}%** &nbsp;|&nbsp; Margem **${s(pesquisas.margem)} pp** (Lula vs Flávio direto)
 
 Swing implícito vs 2022: **${s(swing_imp)} pp**
 
