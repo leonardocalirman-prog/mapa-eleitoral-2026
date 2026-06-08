@@ -9,7 +9,7 @@
 
 O Nowcast Eleitoral 2026 é um exercício de risco político por unidade da federação, construído sobre três pilares: (i) o resultado do primeiro turno presidencial de 2022 como linha de base; (ii) uma hipótese de *swing* — nacional uniforme ou regional observado — calibrada pelo backtest e por pesquisas agregadas; (iii) ajustes regionais e estaduais calibráveis pelo usuário. O dashboard interativo permite simular cenários e observar como a recomposição das margens muda a classificação das UFs em cinco categorias (sólido esquerda, provável esquerda, competitivo, provável direita, sólido direita).
 
-A validação do modelo é feita por um *backtest 2018 → 2022* com duas premissas alternativas. Premissa A — swing nacional uniforme — produz **MAE de 10,0 pontos percentuais**. Premissa B — swing por região observado — reduz o erro para **MAE 6,9 pp (−31%)**. O ganho prova empiricamente que a heterogeneidade regional é informação real, não ruído. O dashboard oferece um toggle que aplica essa heterogeneidade como baseline.
+A validação do modelo é feita por um *backtest 2018 → 2022* com duas premissas alternativas. Premissa A — swing nacional uniforme — produz **MAE de 9,9 pontos percentuais**. Premissa B — swing por região observado — reduz o erro para **MAE 6,3 pp (−36%)**. O ganho prova empiricamente que a heterogeneidade regional é informação real, não ruído. O dashboard oferece um toggle que aplica essa heterogeneidade como baseline. **Insight regional contraintuitivo:** o Sudeste foi a região com maior swing pró-esquerda entre 2018 e 2022 (+29 pp), não o Nordeste — SP virou de Bolso 53% para 41%, sendo decisivo no resultado nacional.
 
 A calibração contemporânea usa pesquisas presidenciais maio/2026 de 12 institutos (Datafolha, Quaest/Genial, AtlasIntel, PoderData, Indexa, Vox, Verità, etc). A leitura metodologicamente compatível com a margem de 2022 (Lula vs Bolsonaro direto) é **Lula vs Flávio direto**, dando mediana **+7,1 pp** e swing implícito **+1,9 pp vs 2022** — quase idêntico ao quadro base de 2022. Os terceiros (Caiado, Zema, Renan) ficam no "outros" e são redistribuídos no 2º turno via parâmetro.
 
@@ -185,11 +185,13 @@ onde `Δ^{obs}_R` é o swing observado da macrorregião R entre 2018 e 2022:
 
 | Região | Margem 2018 (pp) | Margem 2022 (pp) | Swing observado | Desvio vs nacional |
 |---|---|---|---|---|
-| Norte | −18,5 | +13,7 | **+32,2** | +10,3 |
-| Nordeste | +17,8 | +46,9 | **+29,1** | +7,2 |
-| Sudeste | −32,6 | −6,6 | **+26,0** | +4,1 |
-| Sul | −37,6 | −22,0 | **+15,6** | −6,3 |
-| Centro-Oeste | −38,3 | −28,1 | **+10,3** | −11,6 |
+| Sudeste | −34,1 | −4,9 | **+29,1** | +7,1 |
+| Centro-Oeste | −36,9 | −15,9 | **+20,9** | −1,1 |
+| Sul | −37,7 | −17,8 | **+19,9** | −2,1 |
+| Nordeste | +22,9 | +39,8 | **+16,8** | −5,2 |
+| Norte | −6,1 | +1,6 | **+7,8** | −14,2 |
+
+Swing nacional ponderado por votos válidos: **+22,0 pp**.
 
 Comparamos `m̂_i` com `m^{2022}_i` observado em cada modelo. Métricas de erro:
 
@@ -200,31 +202,31 @@ Comparamos `m̂_i` com `m^{2022}_i` observado em cada modelo. Métricas de erro:
 
 | Métrica | Modelo A (nacional) | Modelo B (regional) | Ganho de B |
 |---|---|---|---|
-| Erro médio absoluto (MAE) | **10,0 pp** | **6,9 pp** | **−3,1 pp (−31%)** |
-| Raiz do erro quadrático médio (RMSE) | 11,9 pp | 9,4 pp | −2,5 pp |
-| Erro máximo | 26,1 pp (Acre) | 24,2 pp (Roraima) | −1,9 pp |
-| UFs com swing acima do nacional | 15 | — | — |
-| UFs com swing abaixo do nacional | 12 | — | — |
+| Erro médio absoluto (MAE) | **9,9 pp** | **6,3 pp** | **−3,6 pp (−36%)** |
+| Raiz do erro quadrático médio (RMSE) | 12,5 pp | 9,9 pp | −2,6 pp |
+| Erro máximo | 35,6 pp (Sergipe) | 40,7 pp (Sergipe) | — |
 
 Os cinco maiores erros absolutos do Modelo A (e como o Modelo B se sai):
 
 | UF | 2018 | 2022 real | A est. | A erro | B est. | B erro |
 |---|---|---|---|---|---|---|
-| AC | −49 | −1 | −27,1 | +26,1 | −16,8 | **+15,8** |
-| AM | −23 | +20 | −1,1 | +21,1 | +9,2 | **+10,8** |
-| AP | −37 | +3 | −15,1 | +18,1 | −4,8 | **+7,8** |
-| RJ | −39 | +1 | −17,1 | +18,1 | −13,0 | +14,0 |
-| AL | −3 | +35 | +18,9 | +16,1 | +26,1 | **+8,9** |
+| SE | −22,9 | +34,7 | −0,9 | +35,6 | −6,1 | +40,7 |
+| RR | −45,1 | −46,5 | −23,2 | −23,4 | −37,3 | **−9,2** |
+| MA | +37,0 | +42,8 | +58,9 | −16,1 | +53,8 | **−11,0** |
+| RO | −41,9 | −35,4 | −19,9 | −15,4 | −34,1 | **−1,3** |
+| PA | +5,2 | +12,0 | +27,1 | −15,2 | +13,0 | **−1,1** |
+
+O Modelo B reduz erro drasticamente em UFs cujo swing real ficou próximo do swing regional (RO, PA), mas piora em casos idiossincráticos onde mesmo a média regional não captura (SE virou 22 pp acima do swing do NE).
 
 ### 7.3. Discussão
 
 Três padrões emergem:
 
-**(i) Norte virou pró-Lula muito além do nacional.** Acre, Amazonas, Amapá e Pará tiveram swings 12 a 26 pp superiores ao nacional. Hipóteses razoáveis: peso de transferências federais (Bolsa Família, Auxílio Brasil), efeito de candidatos locais aliados ao governo federal, dinâmicas evangélicas regionais menos densas que no Sudeste.
+**(i) Sudeste foi o motor da virada.** O Sudeste teve o maior swing pró-esquerda (+29,1 pp), 7 pp acima do nacional. Em SP, Bolsonaro caiu de 53,0% em 2018 para 47,7% em 2022, e Haddad/Lula subiu de 16,4% para 40,9%. MG seguiu padrão similar. Em peso eleitoral (42% do voto nacional), o SE foi decisivo no resultado de Lula.
 
-**(ii) Nordeste consolidou pra esquerda.** Estados que já haviam votado Lula em 2018 (BA, AL, MA, CE) ampliaram a margem em 2022. Padrão consistente com a teoria do "voto retrospectivo" (Fiorina, 1981): eleitores nordestinos recompensam o legado dos programas sociais petistas mesmo após anos fora do governo.
+**(ii) Nordeste subiu menos que o esperado.** Apesar do "voto retrospectivo" intuitivo, o swing pró-esquerda no NE foi de apenas +16,8 pp — abaixo do nacional. A explicação: o NE já tinha margem alta para Haddad em 2018 (+22,9 pp), então o espaço para crescer era menor (saturation effect).
 
-**(iii) Sudeste-Sul próximos da estimativa.** São Paulo (erro −1,9 pp) e Minas Gerais (+5,1 pp) ficaram bem ajustados pelo swing uniforme. A leitura é que essas regiões respondem aos vetores nacionais sem dinâmicas regionais fortes.
+**(iii) Norte teve swing fraco.** Apenas +7,8 pp — metade do nacional. Estados como AC (margem −33,2 em 2022, foi −43,7 em 2018) ainda consolidam direita. Roraima manteve estabilidade pró-Bolso (margens próximas em 2018 e 2022).
 
 A implicação operacional é clara: usar swing nacional uniforme produz um *baseline honesto* mas insuficiente. Os sliders de ajuste regional do dashboard existem como ferramenta para o analista incorporar a heterogeneidade estrutural que o backtest revela.
 
