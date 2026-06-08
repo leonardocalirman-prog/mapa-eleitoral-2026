@@ -52,7 +52,7 @@ viewof usarPesquisa = Inputs.toggle({ label: "Usar swing das pesquisas (sobrepõ
 ```
 
 ```{ojs}
-viewof migOutros = Inputs.range([0, 100], { value: 60, step: 5, label: "% Outros → Esquerda (2T)" })
+viewof migOutros = Inputs.range([0, 100], { value: 30, step: 5, label: "% Outros → Esquerda (2T)" })
 ```
 
 **Ajustes regionais (pp)** — soma sobre o swing acima.
