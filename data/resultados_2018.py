@@ -1,42 +1,40 @@
 """
 Resultados eleitorais 2018 por UF - 1o turno presidencial.
-Fonte: TSE (1o turno, 07/10/2018)
-Margem = Haddad% - Bolsonaro% em votos validos (pp)
-Convencao: positivo = esquerda (PT/Haddad), negativo = direita (Bolsonaro)
-
-Numeros sao aproximacoes (arredondamento para pp inteiro) - revisar com dados oficiais
-do repositorio de dados abertos do TSE quando refinar o modelo.
+Fonte: TSE / G1 / Wikipedia EN
+Data: 7 de outubro de 2018, 100% das secoes totalizadas.
+ 
+Convencao: margem = Haddad% - Bolsonaro% (positivo = esquerda).
+Nacional 1T 2018: Bolsonaro 46.03% | Haddad 29.28% | Margem -16.75 pp.
 """
-
+ 
 RESULTADOS_2018 = {
-    "AC": {"nome": "Acre",                "haddad": 18, "bolso": 67, "margem": -49},
-    "AL": {"nome": "Alagoas",             "haddad": 38, "bolso": 41, "margem":  -3},
-    "AM": {"nome": "Amazonas",            "haddad": 28, "bolso": 51, "margem": -23},
-    "AP": {"nome": "Amapa",               "haddad": 23, "bolso": 60, "margem": -37},
-    "BA": {"nome": "Bahia",               "haddad": 51, "bolso": 30, "margem":  21},
-    "CE": {"nome": "Ceara",               "haddad": 51, "bolso": 33, "margem":  18},
-    "DF": {"nome": "Distrito Federal",    "haddad": 16, "bolso": 56, "margem": -40},
-    "ES": {"nome": "Espirito Santo",      "haddad": 14, "bolso": 64, "margem": -50},
-    "GO": {"nome": "Goias",               "haddad": 18, "bolso": 56, "margem": -38},
-    "MA": {"nome": "Maranhao",            "haddad": 53, "bolso": 26, "margem":  27},
-    "MT": {"nome": "Mato Grosso",         "haddad": 17, "bolso": 60, "margem": -43},
-    "MS": {"nome": "Mato Grosso do Sul",  "haddad": 20, "bolso": 51, "margem": -31},
-    "MG": {"nome": "Minas Gerais",        "haddad": 23, "bolso": 48, "margem": -25},
-    "PA": {"nome": "Para",                "haddad": 36, "bolso": 41, "margem":  -5},
-    "PB": {"nome": "Paraiba",             "haddad": 46, "bolso": 36, "margem":  10},
-    "PR": {"nome": "Parana",              "haddad": 19, "bolso": 56, "margem": -37},
-    "PE": {"nome": "Pernambuco",          "haddad": 53, "bolso": 32, "margem":  21},
-    "PI": {"nome": "Piaui",               "haddad": 53, "bolso": 33, "margem":  20},
-    "RJ": {"nome": "Rio de Janeiro",      "haddad": 20, "bolso": 59, "margem": -39},
-    "RN": {"nome": "Rio Grande do Norte", "haddad": 47, "bolso": 36, "margem":  11},
-    "RS": {"nome": "Rio Grande do Sul",   "haddad": 21, "bolso": 51, "margem": -30},
-    "RO": {"nome": "Rondonia",            "haddad": 17, "bolso": 66, "margem": -49},
-    "RR": {"nome": "Roraima",             "haddad": 19, "bolso": 56, "margem": -37},
-    "SC": {"nome": "Santa Catarina",      "haddad": 16, "bolso": 65, "margem": -49},
-    "SP": {"nome": "Sao Paulo",           "haddad": 21, "bolso": 53, "margem": -32},
-    "SE": {"nome": "Sergipe",             "haddad": 47, "bolso": 36, "margem":  11},
-    "TO": {"nome": "Tocantins",           "haddad": 32, "bolso": 44, "margem": -12},
+    "AC": {"nome": "Acre",                "haddad": 18.53, "bolso": 62.24, "margem": -43.71},
+    "AL": {"nome": "Alagoas",             "haddad": 44.75, "bolso": 34.40, "margem":  10.35},
+    "AM": {"nome": "Amazonas",            "haddad": 40.30, "bolso": 43.48, "margem":  -3.18},
+    "AP": {"nome": "Amapa",               "haddad": 32.77, "bolso": 40.74, "margem":  -7.97},
+    "BA": {"nome": "Bahia",               "haddad": 60.28, "bolso": 23.41, "margem":  36.87},
+    "CE": {"nome": "Ceara",               "haddad": 33.12, "bolso": 21.74, "margem":  11.38},
+    "DF": {"nome": "Distrito Federal",    "haddad": 11.87, "bolso": 58.37, "margem": -46.50},
+    "ES": {"nome": "Espirito Santo",      "haddad": 24.20, "bolso": 54.76, "margem": -30.56},
+    "GO": {"nome": "Goias",               "haddad": 21.86, "bolso": 57.24, "margem": -35.38},
+    "MA": {"nome": "Maranhao",            "haddad": 61.26, "bolso": 24.28, "margem":  36.98},
+    "MT": {"nome": "Mato Grosso",         "haddad": 24.76, "bolso": 60.04, "margem": -35.28},
+    "MS": {"nome": "Mato Grosso do Sul",  "haddad": 23.87, "bolso": 55.06, "margem": -31.19},
+    "MG": {"nome": "Minas Gerais",        "haddad": 27.65, "bolso": 48.31, "margem": -20.66},
+    "PA": {"nome": "Para",                "haddad": 41.39, "bolso": 36.19, "margem":   5.20},
+    "PB": {"nome": "Paraiba",             "haddad": 45.46, "bolso": 31.30, "margem":  14.16},
+    "PR": {"nome": "Parana",              "haddad": 19.70, "bolso": 56.89, "margem": -37.19},
+    "PE": {"nome": "Pernambuco",          "haddad": 48.87, "bolso": 30.57, "margem":  18.30},
+    "PI": {"nome": "Piaui",               "haddad": 63.40, "bolso": 18.76, "margem":  44.64},
+    "RJ": {"nome": "Rio de Janeiro",      "haddad": 14.69, "bolso": 59.79, "margem": -45.10},
+    "RN": {"nome": "Rio Grande do Norte", "haddad": 41.19, "bolso": 30.21, "margem":  10.98},
+    "RS": {"nome": "Rio Grande do Sul",   "haddad": 22.81, "bolso": 52.63, "margem": -29.82},
+    "RO": {"nome": "Rondonia",            "haddad": 20.36, "bolso": 62.24, "margem": -41.88},
+    "RR": {"nome": "Roraima",             "haddad": 17.85, "bolso": 62.97, "margem": -45.12},
+    "SC": {"nome": "Santa Catarina",      "haddad": 15.13, "bolso": 65.82, "margem": -50.69},
+    "SP": {"nome": "Sao Paulo",           "haddad": 16.42, "bolso": 53.00, "margem": -36.58},
+    "SE": {"nome": "Sergipe",             "haddad": 27.21, "bolso": 50.09, "margem": -22.88},
+    "TO": {"nome": "Tocantins",           "haddad": 41.12, "bolso": 44.64, "margem":  -3.52},
 }
-
-# Margem nacional 2018 (1o turno): Haddad 29.3% - Bolso 46.0% = -16.7 pp
-MARGEM_NACIONAL_2018 = -16.7
+ 
+MARGEM_NACIONAL_2018 = -16.75  # Haddad 29.28% - Bolsonaro 46.03%
