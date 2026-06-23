@@ -44,8 +44,10 @@ viewof swingNac = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Swing n
 ```
 
 ```{ojs}
-viewof usarRegional = Inputs.toggle({ label: "Aplicar heterogeneidade regional (2018→2022)", value: false })
+viewof usarRegional = Inputs.toggle({ label: "Distribuir swing nacional por elasticidade regional (requer swing ≠ 0)", value: false })
 ```
+
+*Quando ligado, redistribui o swing nacional entre regiões usando as elasticidades observadas em 2018→2022 (SE 1,80 · CO 1,21 · S 1,15 · N −0,08 · NE 0,00). Slider em 0 = nenhum efeito.*
 
 ```{ojs}
 viewof usarPesquisa = Inputs.toggle({ label: "Usar swing das pesquisas (sobrepõe)", value: false })
@@ -80,10 +82,10 @@ viewof ajS = Inputs.range([-15, 15], { value: 0, step: 0.5, label: "Sul" })
 ```{ojs}
 //| output: false
 // swingPorRegiao: swing efetivo aplicado a cada UF, por regiao.
-// Prioridade: pesquisas (uniforme) > heterogeneidade regional > slider nacional.
-// Quando 'usarRegional' eh ligado, aplica o DESVIO regional observado (2018->2022)
-// somado ao swing nacional escolhido pelo usuario. Isso captura heterogeneidade
-// historica sem inflar margem nacional.
+// Elasticidade regional: cada regiao recebe uma fracao do swing nacional,
+// proporcional ao quanto ela se moveu vs o swing nacional medio em 18->22.
+// SE=1.80 (amplifica), NE=0 (isolante), N=-0.08, CO=1.21, S=1.15.
+// Com swing nacional zero, ninguem se move -> reproduz 2022 exato.
 swingPorRegiao = {
   const REGIOES = ["N", "NE", "CO", "SE", "S"]
   if (usarPesquisa && pesquisas && pesquisas.margem !== null) {
@@ -91,9 +93,12 @@ swingPorRegiao = {
     return Object.fromEntries(REGIOES.map(r => [r, s]))
   }
   if (usarRegional && backtest && backtest.swings_regionais) {
+    const swing_obs_nac = backtest.swing_nacional_observado
     return Object.fromEntries(REGIOES.map(r => {
-      const desvio = backtest.swings_regionais[r].swing_observado - backtest.swing_nacional_observado
-      return [r, Math.round((swingNac + desvio) * 10) / 10]
+      const elast = swing_obs_nac !== 0
+        ? backtest.swings_regionais[r].swing_observado / swing_obs_nac
+        : 1
+      return [r, Math.round(swingNac * elast * 10) / 10]
     }))
   }
   return Object.fromEntries(REGIOES.map(r => [r, swingNac]))
@@ -358,9 +363,19 @@ Erro max — Modelo A (pp)
 
   **Modelo B — Swing por região observado** (cada região recebe seu próprio swing 2018→2022). MAE = **${B.mae_pp} pp**.
 
-  **Ganho do Modelo B sobre A: −${(A.mae_pp - B.mae_pp).toFixed(1)} pp no MAE** (redução de **${ganho_pct}%**). Isso valida o desenho do dashboard: a heterogeneidade regional captura informação que o swing uniforme não enxerga.
+  **Ganho do Modelo B sobre A: −${(A.mae_pp - B.mae_pp).toFixed(1)} pp no MAE** (redução de **${ganho_pct}%**). A heterogeneidade regional captura informação que o swing uniforme não enxerga.
 
-  **Implicação operacional:** o toggle _Aplicar heterogeneidade regional_ na aba Simulador soma os **desvios** observados (swing regional − swing nacional) ao swing escolhido. Os sliders por região seguem como ajustes finos.
+  **Implicação operacional:** o toggle _Aplicar heterogeneidade regional_ na aba Simulador multiplica o swing escolhido por uma **elasticidade regional** observada em 2018→2022:
+
+  | Região | Elasticidade |
+  |---|---|
+  | SE | 1,80 (amplificador) |
+  | CO | 1,21 |
+  | S | 1,15 |
+  | N | −0,08 |
+  | NE | 0,00 (isolante) |
+
+  Com swing nacional zero, todas as regiões recebem zero — reproduz 2022 exato. Os sliders por região seguem como ajustes finos.
   `
 }
 ```
