@@ -180,7 +180,7 @@ Importante: os ajustes regionais não pretendem ser um modelo causal de variaç�
 Aplicamos a equação central usando 2018 como linha de base, com duas premissas alternativas para o swing:
 
 **Modelo A — Swing nacional uniforme:**
-> `m̂^{A}_i = m^{2018}_i + Δ^{obs}_nac`,&nbsp; `Δ^{obs}_nac = +21,9 pp`
+> `m̂^{A}_i = m^{2018}_i + Δ^{obs}_nac`,&nbsp; `Δ^{obs}_nac = +9,5 pp`
 
 **Modelo B — Swing regional observado** (ponderado por votos válidos):
 > `m̂^{B}_i = m^{2018}_i + Δ^{obs}_R(i)`
@@ -236,7 +236,19 @@ Três padrões emergem:
 
 **(iii) Norte é flat.** Swing nacional zero (−0,8 pp). Estados como AC (margem 2022 = −33,2 vs 2018 esq ampla −38,5) e RR (−46,5 vs −39,8) seguem trajetórias próprias. O Norte é hoje um conjunto heterogêneo onde Bolso domina rural/AC/RR, Lula domina urbano/PA/PI. Não há vetor único.
 
-A implicação operacional é clara: usar swing nacional uniforme produz um *baseline honesto* mas insuficiente. Os sliders de ajuste regional do dashboard existem como ferramenta para o analista incorporar a heterogeneidade estrutural que o backtest revela.
+A implicação operacional é clara: usar swing nacional uniforme produz um *baseline honesto* mas insuficiente. O toggle "Aplicar heterogeneidade regional" do dashboard incorpora essa estrutura via **elasticidade multiplicativa**: cada região recebe `swing_nacional × β_R`, onde `β_R = Δ^{obs}_R / Δ^{obs}_nac`. As elasticidades observadas:
+
+| Região | β (elasticidade) | Leitura |
+|---|---|---|
+| Sudeste | 1,80 | Amplificador — move 1,8× o swing nacional |
+| Centro-Oeste | 1,21 | Acompanha + 21% |
+| Sul | 1,15 | Acompanha + 15% |
+| Norte | −0,08 | Quase imóvel, sinal oposto |
+| Nordeste | 0,00 | Isolante puro |
+
+Vantagens dessa formulação: (i) preserva o invariante "swing nacional zero → reprodução exata de 2022", (ii) mantém a média ponderada por votos próxima ao swing nacional aplicado, e (iii) tem leitura intuitiva para mercado — elasticidade é vocabulário familiar para quem trabalha com sensibilidade de ativos a choques.
+
+Os sliders por região seguem como ajustes finos para sobrepor cenários idiossincráticos (ex: candidato bolsonarista forte em SP/MG empurrando o SE acima da elasticidade base).
 
 ---
 
@@ -268,8 +280,8 @@ A implicação operacional é clara: usar swing nacional uniforme produz um *bas
 **V2 (concluída):**
 - [x] Dashboard interativo Quarto + Observable.
 - [x] Backtest 2018 → 2022 com decomposição por UF.
-- [x] **Modelo B (swing regional)** — MAE 6,9 pp, ganho de 31% sobre Modelo A.
-- [x] Toggle "Aplicar heterogeneidade regional" no Simulador.
+- [x] **Modelo B (swing regional)** — MAE 4,7 pp, ganho de 45% sobre Modelo A.
+- [x] Toggle "Aplicar heterogeneidade regional" no Simulador (via elasticidade multiplicativa).
 - [x] Projeção de 2º turno parametrizada (slider migOutros).
 - [x] Decomposição regional da margem nacional.
 - [x] Card de pesquisas alimentado por JSON manual (12 institutos, mediana +7,1 pp).
@@ -384,4 +396,3 @@ Atualização semanal:
 ---
 
 *Este documento é versionado junto com o código. Última atualização: `git log -1 METODOLOGIA.md`.*
-
