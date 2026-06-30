@@ -1,0 +1,319 @@
+{
+  "pontos": [
+    {
+      "poll_id": "d67e7f36a5",
+      "instituto": "Verita",
+      "data": "2026-05-15T00:00:00",
+      "gap_bruto": 0.2,
+      "gap_corrigido": -2.57,
+      "amostra": 3404
+    },
+    {
+      "poll_id": "d0e639f65a",
+      "instituto": "Vetor",
+      "data": "2026-05-18T00:00:00",
+      "gap_bruto": 7.2,
+      "gap_corrigido": 4.43,
+      "amostra": 9000
+    },
+    {
+      "poll_id": "837b392909",
+      "instituto": "AtlasIntel",
+      "data": "2026-05-18T00:00:00",
+      "gap_bruto": 12.7,
+      "gap_corrigido": 9.93,
+      "amostra": 5032
+    },
+    {
+      "poll_id": "f9b1caa183",
+      "instituto": "Vox Brasil",
+      "data": "2026-05-19T00:00:00",
+      "gap_bruto": 9.4,
+      "gap_corrigido": 6.63,
+      "amostra": 2100
+    },
+    {
+      "poll_id": "7f17e36d85",
+      "instituto": "Apex/Futura",
+      "data": "2026-05-20T00:00:00",
+      "gap_bruto": 7.1,
+      "gap_corrigido": 4.33,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "d7e8a7c66a",
+      "instituto": "Gerp",
+      "data": "2026-05-21T00:00:00",
+      "gap_bruto": 0.0,
+      "gap_corrigido": -2.77,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "ab3f6b47df",
+      "instituto": "Datafolha",
+      "data": "2026-05-22T00:00:00",
+      "gap_bruto": 9.0,
+      "gap_corrigido": 6.23,
+      "amostra": 2004
+    },
+    {
+      "poll_id": "afc1f22505",
+      "instituto": "Indexa",
+      "data": "2026-05-24T00:00:00",
+      "gap_bruto": 9.0,
+      "gap_corrigido": 6.23,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "de32440500",
+      "instituto": "Nexus",
+      "data": "2026-05-24T00:00:00",
+      "gap_bruto": 5.0,
+      "gap_corrigido": 2.23,
+      "amostra": 2045
+    },
+    {
+      "poll_id": "20fc031441",
+      "instituto": "Meio/Ideia",
+      "data": "2026-05-27T00:00:00",
+      "gap_bruto": 7.0,
+      "gap_corrigido": 4.23,
+      "amostra": 1500
+    },
+    {
+      "poll_id": "235a7d0a96",
+      "instituto": "PoderData",
+      "data": "2026-05-28T00:00:00",
+      "gap_bruto": 5.0,
+      "gap_corrigido": 2.23,
+      "amostra": 2400
+    },
+    {
+      "poll_id": "bb9fe76ddb",
+      "instituto": "Real Time Big Data",
+      "data": "2026-05-30T00:00:00",
+      "gap_bruto": 7.0,
+      "gap_corrigido": 4.23,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "6b720bbd3a",
+      "instituto": "Gerp",
+      "data": "2026-06-05T00:00:00",
+      "gap_bruto": -1.0,
+      "gap_corrigido": -3.77,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "9fd8176533",
+      "instituto": "Vox Brasil",
+      "data": "2026-06-06T00:00:00",
+      "gap_bruto": 8.5,
+      "gap_corrigido": 5.73,
+      "amostra": 2100
+    },
+    {
+      "poll_id": "669028fca5",
+      "instituto": "Quaest",
+      "data": "2026-06-08T00:00:00",
+      "gap_bruto": 10.0,
+      "gap_corrigido": 7.23,
+      "amostra": 2004
+    },
+    {
+      "poll_id": "a0ddc401ad",
+      "instituto": "Alfa Inteligência",
+      "data": "2026-06-10T00:00:00",
+      "gap_bruto": 9.0,
+      "gap_corrigido": 6.23,
+      "amostra": 1400
+    },
+    {
+      "poll_id": "ac9e9c4520",
+      "instituto": "Futura",
+      "data": "2026-06-12T00:00:00",
+      "gap_bruto": 7.5,
+      "gap_corrigido": 4.73,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "1c92259e32",
+      "instituto": "Nexus",
+      "data": "2026-06-14T00:00:00",
+      "gap_bruto": 9.0,
+      "gap_corrigido": 6.23,
+      "amostra": 2017
+    },
+    {
+      "poll_id": "4453ca3e86",
+      "instituto": "CTN/MDA",
+      "data": "2026-06-14T00:00:00",
+      "gap_bruto": 13.6,
+      "gap_corrigido": 10.83,
+      "amostra": 2002
+    },
+    {
+      "poll_id": "6c1975e325",
+      "instituto": "American Analytics",
+      "data": "2026-06-15T00:00:00",
+      "gap_bruto": 8.0,
+      "gap_corrigido": 5.23,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "57f4c647fb",
+      "instituto": "Datafolha",
+      "data": "2026-06-19T00:00:00",
+      "gap_bruto": 10.0,
+      "gap_corrigido": 7.23,
+      "amostra": 2004
+    },
+    {
+      "poll_id": "ca93528e9b",
+      "instituto": "Gerp",
+      "data": "2026-06-20T00:00:00",
+      "gap_bruto": 3.0,
+      "gap_corrigido": 0.23,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "432b19c629",
+      "instituto": "Indexa",
+      "data": "2026-06-20T00:00:00",
+      "gap_bruto": 11.0,
+      "gap_corrigido": 8.23,
+      "amostra": 2000
+    },
+    {
+      "poll_id": "4d34d7558a",
+      "instituto": "PoderData",
+      "data": "2026-06-24T00:00:00",
+      "gap_bruto": 4.0,
+      "gap_corrigido": 1.23,
+      "amostra": 2400
+    },
+    {
+      "poll_id": "d9779899b0",
+      "instituto": "Vox Brasil",
+      "data": "2026-06-25T00:00:00",
+      "gap_bruto": 6.1,
+      "gap_corrigido": 3.33,
+      "amostra": 2100
+    },
+    {
+      "poll_id": "2ef2c7f9b0",
+      "instituto": "Nexus",
+      "data": "2026-06-28T00:00:00",
+      "gap_bruto": 7.0,
+      "gap_corrigido": 4.23,
+      "amostra": 2009
+    }
+  ],
+  "agregado_rolling": [
+    {
+      "data": "2026-05-18T00:00:00",
+      "gap_corrigido": 4.24,
+      "n_janela": 3
+    },
+    {
+      "data": "2026-05-19T00:00:00",
+      "gap_corrigido": 4.8,
+      "n_janela": 4
+    },
+    {
+      "data": "2026-05-20T00:00:00",
+      "gap_corrigido": 4.71,
+      "n_janela": 5
+    },
+    {
+      "data": "2026-05-21T00:00:00",
+      "gap_corrigido": 3.44,
+      "n_janela": 6
+    },
+    {
+      "data": "2026-05-22T00:00:00",
+      "gap_corrigido": 3.87,
+      "n_janela": 7
+    },
+    {
+      "data": "2026-05-24T00:00:00",
+      "gap_corrigido": 3.95,
+      "n_janela": 9
+    },
+    {
+      "data": "2026-05-27T00:00:00",
+      "gap_corrigido": 3.99,
+      "n_janela": 10
+    },
+    {
+      "data": "2026-05-28T00:00:00",
+      "gap_corrigido": 3.76,
+      "n_janela": 11
+    },
+    {
+      "data": "2026-05-30T00:00:00",
+      "gap_corrigido": 3.81,
+      "n_janela": 12
+    },
+    {
+      "data": "2026-06-05T00:00:00",
+      "gap_corrigido": 2.8,
+      "n_janela": 13
+    },
+    {
+      "data": "2026-06-06T00:00:00",
+      "gap_corrigido": 3.17,
+      "n_janela": 14
+    },
+    {
+      "data": "2026-06-08T00:00:00",
+      "gap_corrigido": 3.65,
+      "n_janela": 15
+    },
+    {
+      "data": "2026-06-10T00:00:00",
+      "gap_corrigido": 3.91,
+      "n_janela": 16
+    },
+    {
+      "data": "2026-06-12T00:00:00",
+      "gap_corrigido": 4.0,
+      "n_janela": 17
+    },
+    {
+      "data": "2026-06-14T00:00:00",
+      "gap_corrigido": 4.93,
+      "n_janela": 19
+    },
+    {
+      "data": "2026-06-15T00:00:00",
+      "gap_corrigido": 5.16,
+      "n_janela": 19
+    },
+    {
+      "data": "2026-06-19T00:00:00",
+      "gap_corrigido": 5.24,
+      "n_janela": 17
+    },
+    {
+      "data": "2026-06-20T00:00:00",
+      "gap_corrigido": 5.06,
+      "n_janela": 18
+    },
+    {
+      "data": "2026-06-24T00:00:00",
+      "gap_corrigido": 4.75,
+      "n_janela": 15
+    },
+    {
+      "data": "2026-06-25T00:00:00",
+      "gap_corrigido": 4.59,
+      "n_janela": 16
+    },
+    {
+      "data": "2026-06-28T00:00:00",
+      "gap_corrigido": 4.62,
+      "n_janela": 15
+    }
+  ]
+}
