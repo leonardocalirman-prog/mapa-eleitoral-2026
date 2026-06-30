@@ -1,170 +1,494 @@
-"""
-prep_data.py - Prepara os dados para o dashboard Quarto/Observable.
+# Nowcast Eleitoral 2026 — Metodologia
 
-Quando rodar:
-    - Antes de quarto render/preview pela primeira vez.
-    - Sempre que mexer em data/*.py ou tracker/*.py.
-    - O GitHub Action publish.yml ja chama esse script automaticamente.
-"""
+*Documento técnico-metodológico do projeto `mapa-eleitoral-2026`.*
+*Autor: Leonardo Wandersman. Versão 0.2 — Maio/2026.*
 
-import json
-import os
-import sys
+---
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+## Sumário executivo
 
-from data.resultados_2022 import RESULTADOS_2022
-from src.mapa import _get_geojson
-from src import pesquisas
-from src import backtest
+O Nowcast Eleitoral 2026 é um exercício de risco político por unidade da federação, construído sobre três pilares: (i) o resultado do primeiro turno presidencial de 2022 como linha de base; (ii) uma hipótese de *swing* — nacional uniforme ou regional observado — calibrada pelo backtest e por pesquisas agregadas; (iii) ajustes regionais e estaduais calibráveis pelo usuário. O dashboard interativo permite simular cenários e observar como a recomposição das margens muda a classificação das UFs em cinco categorias (sólido esquerda, provável esquerda, competitivo, provável direita, sólido direita).
 
-DATA_DIR       = os.path.join(os.path.dirname(__file__), "data")
-JSON_PATH      = os.path.join(DATA_DIR, "resultados_2022.json")
-PESQUISAS_PATH = os.path.join(DATA_DIR, "pesquisas_mediana.json")
-BACKTEST_PATH  = os.path.join(DATA_DIR, "backtest_2018_2022.json")
+A validação do modelo é feita por um *backtest 2018 → 2022* com duas premissas alternativas. Premissa A — swing nacional uniforme — produz **MAE de 8,6 pontos percentuais**. Premissa B — swing por região observado — reduz o erro para **MAE 4,7 pp (−45%)**. O ganho prova empiricamente que a heterogeneidade regional é informação real, não ruído.
 
+**Decisão metodológica importante:** para 2018, tratamos Haddad (PT) + Ciro Gomes (PDT) como "esquerda ampla", já que em 2022 esses eleitores convergiram para Lula. Sem essa correção, o swing 2018→2022 seria inflado pela fragmentação da esquerda em 2018 (Ciro fez 12,5% nacional).
 
-def gerar_json_resultados() -> None:
-    registros = []
-    for uf, d in RESULTADOS_2022.items():
-        registros.append({
-            "uf": uf, "nome": d["nome"], "regiao": d["regiao"],
-            "lula_2022": d["lula"], "bolso_2022": d["bolso"],
-            "margem_2022": d["margem"], "votos_validos": d["votos_validos"],
-        })
-    registros.sort(key=lambda r: r["uf"])
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(registros, f, ensure_ascii=False, indent=2)
-    print(f"OK  resultados_2022.json gerado ({len(registros)} UFs)")
+**Achado central, contraintuitivo:** Lula não "ganhou" o Nordeste em 2022 — ele recuperou o voto que Haddad emprestou para Ciro em 2018. O NE teve swing nacional zero entre 2018 e 2022 (margem esquerda ampla foi de +39,8 a +39,8). A vitória de 2022 foi conquistada no **Sudeste (+17 pp), Sul (+11) e Centro-Oeste (+12)** — regiões onde Bolsonaro tinha grandes margens em 2018 e perdeu metade delas. São Paulo passou de margem −25 (2018 esq ampla) para −7 (2022) — virou 18 pontos no maior colégio eleitoral do país.
 
+A calibração contemporânea usa pesquisas presidenciais maio/2026 de 12 institutos (Datafolha, Quaest/Genial, AtlasIntel, PoderData, Indexa, Vox, Verità, etc). A leitura metodologicamente compatível com a margem de 2022 (Lula vs Bolsonaro direto) é **Lula vs Flávio direto**, dando mediana **+7,1 pp** e swing implícito **+1,9 pp vs 2022** — quase idêntico ao quadro base de 2022. Os terceiros (Caiado, Zema, Renan) ficam no "outros" e são redistribuídos no 2º turno via parâmetro.
 
-def garantir_geojson() -> None:
-    _get_geojson()
-    print("OK  br_states.geojson disponivel em data/")
+O projeto é open-source, escrito em Python e Observable JavaScript, renderizado via Quarto Dashboard, publicado em GitHub Pages, e atualizável com pesquisas agregadas via edição de um arquivo JSON simples.
 
+---
 
-def gerar_json_pesquisas(dias: int = 30) -> None:
-    import datetime as dt
-    import statistics
+## 1. Objetivo
 
-    MANUAL_PATH = os.path.join(DATA_DIR, "pesquisas_manual.json")
-    try:
-        with open(MANUAL_PATH, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        lista = raw.get("pesquisas", [])
-        registros = []
-        for p in lista:
-            esq, dir_ = p.get("esquerda_pct"), p.get("direita_pct")
-            if esq is None or dir_ is None:
-                continue
-            registros.append({
-                "data": dt.datetime.strptime(p["data"], "%Y-%m-%d"),
-                "esquerda": esq, "direita": dir_, "margem": esq - dir_,
-                "instituto": p.get("instituto", ""),
-            })
-        if not registros:
-            med = {"esquerda": None, "direita": None, "margem": None,
-                   "n_pesquisas": 0, "fonte": "manual vazio",
-                   "erro": "Edite data/pesquisas_manual.json."}
-        else:
-            corte = dt.datetime.now() - dt.timedelta(days=dias)
-            recente = [r for r in registros if r["data"] >= corte]
-            fonte = f"manual, ultimos {dias}d"
-            if not recente:
-                recente = sorted(registros, key=lambda r: -r["data"].timestamp())[:5]
-                fonte = "manual, ultimas 5"
-            med = {
-                "esquerda": round(statistics.median(r["esquerda"] for r in recente), 1),
-                "direita": round(statistics.median(r["direita"] for r in recente), 1),
-                "margem": round(statistics.median(r["margem"] for r in recente), 1),
-                "n_pesquisas": len(recente),
-                "data_min": min(r["data"] for r in recente).date().isoformat(),
-                "data_max": max(r["data"] for r in recente).date().isoformat(),
-                "fonte": fonte,
-            }
-        med["atualizado_em"] = dt.datetime.now().isoformat()
-        status = "OK"
-    except Exception as e:
-        med = {"erro": f"{e.__class__.__name__}: {e}",
-               "esquerda": None, "direita": None, "margem": None,
-               "n_pesquisas": 0, "atualizado_em": dt.datetime.now().isoformat()}
-        status = f"ERRO ({e.__class__.__name__})"
+Construir uma camada visual de **acompanhamento de risco político eleitoral** em granularidade estadual, com três propriedades:
 
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(PESQUISAS_PATH, "w", encoding="utf-8") as f:
-        json.dump(med, f, ensure_ascii=False, indent=2)
-    print(f"{status}  pesquisas_mediana.json (n={med.get('n_pesquisas', 0)})")
+1. **Transparência metodológica:** toda decisão de modelagem é explícita e auditável.
+2. **Reatividade:** o usuário pode simular cenários movendo parâmetros e observar o resultado em tempo real.
+3. **Honestidade sobre incerteza:** o backtest mostra o erro real da abordagem, sem mascarar limitações.
 
+O público-alvo são profissionais de mercado financeiro (renda fixa, câmbio, equities, macro) que precisam mapear assimetrias regionais e calibrar prêmios de risco político em ativos brasileiros.
 
-def gerar_json_backtest() -> None:
-    import datetime as dt
-    r = backtest.rodar()
-    r["atualizado_em"] = dt.datetime.now().isoformat()
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(BACKTEST_PATH, "w", encoding="utf-8") as f:
-        json.dump(r, f, ensure_ascii=False, indent=2)
-    mae_a = r["modelo_A_nacional"]["mae_pp"]
-    mae_b = r["modelo_B_regional"]["mae_pp"]
-    print(f"OK  backtest_2018_2022.json (MAE A={mae_a} pp | B={mae_b} pp)")
+---
 
+## 2. Arquitetura
 
-def gerar_tracker() -> None:
-    """Pipeline V3 do tracker."""
-    from tracker import clean, house_effects, agregador, probabilidade
+O projeto separa três camadas:
 
-    RAW_2026 = os.path.join(DATA_DIR, "pesquisas_2026_raw.csv")
-    RAW_2022 = os.path.join(DATA_DIR, "pesquisas_2022_raw.csv")
-    CSV_2026 = os.path.join(DATA_DIR, "pesquisas_2026.csv")
-    CSV_2022 = os.path.join(DATA_DIR, "pesquisas_2022_finais.csv")
-    HE_PATH = os.path.join(DATA_DIR, "house_effects.json")
-    AGG_PATH = os.path.join(DATA_DIR, "tracker_agregado.json")
-    SERIE_PATH = os.path.join(DATA_DIR, "tracker_serie.json")
+**Camada de dados** (`data/`): fontes oficiais e dados intermediários em formato consumível.
+- `resultados_2022.py` — TSE 1º turno, margem Lula − Bolsonaro por UF.
+- `resultados_2018.py` — TSE 1º turno, margem Haddad − Bolsonaro por UF.
+- `pesquisas_manual.json` — agregador manual de pesquisas presidenciais (Datafolha, Quaest, Atlas, etc).
+- `br_states.geojson` — malha estadual do IBGE.
+- `resultados_2022.json`, `backtest_2018_2022.json`, `pesquisas_mediana.json` — JSONs derivados consumidos pelo dashboard.
 
-    try:
-        from tracker import ingest, ingest_2022
-        ingest.main()
-        ingest_2022.main()
-        clean.processar(RAW_2026, CSV_2026)
-        clean.processar(RAW_2022, CSV_2022)
-        ingest_status = "OK ingest Wikipedia + clean"
-    except Exception as e:
-        print(f"  AVISO ingest falhou ({e.__class__.__name__}): {e}")
-        print(f"  -> usando CSVs limpos versionados")
-        ingest_status = "FALLBACK (CSVs versionados)"
-        if not (os.path.exists(CSV_2026) and os.path.exists(CSV_2022)):
-            print(f"  ERRO: nem CSVs versionados existem. Tracker abortado.")
-            return
+**Camada de transformação** (`src/`): lógica de modelo e ETL em Python.
+- `modelo.py` — fórmula central de classificação por margem.
+- `mapa.py` — geração estática do choropleth (Plotly).
+- `backtest.py` — validação 2018 → 2022.
+- `pesquisas.py` — scraper (deprecated em favor de input manual; preservado pra trabalho futuro).
 
-    import pandas as pd
-    df_2022 = pd.read_csv(CSV_2022)
-    he = house_effects.calcular(df_2022)
-    with open(HE_PATH, "w", encoding="utf-8") as f:
-        json.dump(he, f, ensure_ascii=False, indent=2)
+**Camada de apresentação** (`index.qmd` + `_quarto.yml`): dashboard interativo em Quarto + Observable JS. Renderização estática publicada via GitHub Actions no GitHub Pages.
 
-    df_2026 = pd.read_csv(CSV_2026)
-    pesos = agregador.carregar_pesos_institutos()
-    snap, serie = agregador.processar(df_2026, he, pesos)
+Um único ponto de entrada (`prep_data.py`) regenera todos os JSONs intermediários a partir das fontes em `data/`.
 
-    snap["probabilidades"] = probabilidade.calcular_probabilidades(snap["gap_corrigido"])
-    snap["sigmas_cenarios"] = probabilidade.CENARIOS_SIGMA
-    snap["bias_2022_aplicado"] = he["bias_agregado"]
-    snap["fonte_ingest"] = ingest_status
+---
 
-    with open(AGG_PATH, "w", encoding="utf-8") as f:
-        json.dump(snap, f, ensure_ascii=False, indent=2, default=str)
-    with open(SERIE_PATH, "w", encoding="utf-8") as f:
-        json.dump(serie, f, ensure_ascii=False, indent=2, default=str)
+## 3. Modelo
 
-    p_base = snap["probabilidades"]["base"]
-    print(f"OK  tracker  gap_bruto={snap['gap_bruto']:+.2f}  gap_corr={snap['gap_corrigido']:+.2f}  P(Lula) base={p_base}%  n={snap['n_pesquisas']}")
+### 3.1. Premissa central
 
+A hipótese fundamental é o **swing nacional uniforme**: a variação na margem entre dois pleitos consecutivos se distribui de forma homogênea pelas unidades federativas. Formalmente, se `m_uf(t)` denota a margem (em pontos percentuais) da esquerda sobre a direita em uma UF em determinado pleito,
 
-if __name__ == "__main__":
-    print("-- Preparando dados para o dashboard --")
-    gerar_json_resultados()
-    garantir_geojson()
-    gerar_json_pesquisas()
-    gerar_json_backtest()
-    gerar_tracker()
-    print("Pronto. Agora rode: quarto preview")
+> `m_uf(t+1) = m_uf(t) + Δ_nacional`
+
+onde `Δ_nacional` é o swing nacional observado ou hipotetizado.
+
+A premissa é uma simplificação herdada da literatura britânica de análise eleitoral (Butler-Stokes, 1969) e tem como contraponto principal a abordagem de *uniform partisan swing* aplicada distrito a distrito. Vantagem: parametrização com um único número. Limitação: ignora heterogeneidade estrutural entre regiões.
+
+### 3.2. Notação
+
+Para cada UF `i`, denotamos:
+
+- `m^{2022}_i` — margem real Lula − Bolsonaro em 2022, em pontos percentuais. Exemplo: `m^{2022}_BA = +56`, `m^{2022}_SP = −12`.
+- `l^{2022}_i`, `b^{2022}_i` — percentuais Lula e Bolsonaro em 2022. Exemplo: `l^{2022}_BA = 73%`, `b^{2022}_BA = 17%`.
+- `o_i = 100 − l^{2022}_i − b^{2022}_i` — eleitorado em terceira via, brancos e nulos em 2022 (mantido constante na simulação).
+- `v_i` — votos válidos em 2022 (peso de cada UF na agregação nacional). Exemplo: `v_SP ≈ 22,4 milhões`.
+- `s` — swing nacional, parâmetro do modelo.
+- `a^R_i` — ajuste regional aplicado a cada UF segundo sua macrorregião (Norte, Nordeste, Centro-Oeste, Sudeste, Sul).
+- `m̂_i` — margem estimada para 2026 na UF `i`.
+
+### 3.3. Equação central
+
+> `m̂_i = m^{2022}_i + s + a^R_i`
+
+Exemplo numérico, São Paulo com `s = −3` e `a^SE = +1`:
+`m̂_SP = −12 + (−3) + 1 = −14 pp`
+
+### 3.4. Classificação por faixa
+
+A margem estimada é mapeada em cinco classes via limiares fixos:
+
+| Faixa de `m̂_i` | Classe |
+|---|---|
+| `> +20` | Sólido esquerda |
+| `+5` a `+20` | Provável esquerda |
+| `−5` a `+5` | Competitivo |
+| `−20` a `−5` | Provável direita |
+| `< −20` | Sólido direita |
+
+Os limiares são convencionais e podem ser parametrizados; valores escolhidos refletem o uso comum em análise eleitoral norte-americana (Cook PVI usa janelas similares).
+
+---
+
+## 4. Agregação nacional e projeção de 2º turno
+
+### 4.1. Primeiro turno nacional ponderado
+
+Dada uma margem estimada por UF, recuperamos os percentuais individuais de Lula e Bolsonaro mantendo a participação de "outros" constante em relação a 2022:
+
+> `l̂_i = (100 − o_i + m̂_i) / 2`
+> `b̂_i = (100 − o_i − m̂_i) / 2`
+
+A intuição é: o eleitorado "Outros" `o_i` em uma UF segue o mesmo que em 2022, e o restante (`100 − o_i`) se divide entre os dois polos de forma que `l̂_i − b̂_i = m̂_i`. A agregação nacional é uma média ponderada pelo eleitorado:
+
+> `L̂_nac = (Σ_i l̂_i · v_i) / Σ_i v_i`
+> `B̂_nac = (Σ_i b̂_i · v_i) / Σ_i v_i`
+> `M̂_nac = L̂_nac − B̂_nac`
+
+No caso default (`s = 0`, todos os `a^R_i = 0`), o modelo reproduz `M̂_nac ≈ +5,3 pp`, próximo da margem real de 2022 de `+5,2 pp`. A pequena divergência vem do arredondamento das margens por UF para inteiros.
+
+### 4.2. Segundo turno
+
+A projeção de segundo turno parte do primeiro turno simulado e redistribui o eleitorado "Outros" entre os dois finalistas segundo um único parâmetro `f` (slider `% Outros → Esquerda (2T)`, default `0,60`):
+
+> `e^{2T}_i = l̂_i + f · o_i`
+> `d^{2T}_i = b̂_i + (1 − f) · o_i`
+
+Agregando nacionalmente e calculando `Ê^{2T} − D̂^{2T}` obtemos a margem do segundo turno. A premissa de divisão constante é grosseira — na prática, a redistribuição varia por UF e por candidato terceiro. É um placeholder calibrável.
+
+---
+
+## 5. Decomposição regional
+
+Para cada uma das cinco macrorregiões `R` (Norte, Nordeste, Centro-Oeste, Sudeste, Sul), calculamos:
+
+> `peso_R = Σ_{i ∈ R} v_i`
+> `m̂_R = (Σ_{i ∈ R} m̂_i · v_i) / peso_R`
+> `c_R = m̂_R · (peso_R / Σ_i v_i)`
+
+`c_R` é a *contribuição em pontos percentuais da região R para a margem nacional*. Por construção, `Σ_R c_R = M̂_nac`. O dashboard exibe essa decomposição como barras horizontais — visualização que isola onde está concentrada a vantagem (ou desvantagem) de cada bloco no cenário simulado.
+
+---
+
+## 6. Calibração: pesquisas e ajustes
+
+### 6.1. Swing implícito das pesquisas
+
+Pesquisas presidenciais agregadas fornecem uma estimativa contemporânea da margem nacional. Definimos:
+
+> `Δ_pesquisas = M_pesquisas − m^{2022}_nac`
+
+Quando o usuário ativa o toggle "Usar swing das pesquisas", o modelo substitui `s` por `Δ_pesquisas`. O insumo `M_pesquisas` é a mediana das margens das pesquisas no recorte temporal padrão de 30 dias, lida do arquivo `pesquisas_manual.json`.
+
+**Escolha metodológica — Leitura A vs Leitura B.** Há duas formas defensáveis de calcular a margem em cada pesquisa:
+
+- **Leitura A — Lula vs candidato principal direita (Flávio Bolsonaro).** Mantém comparabilidade com a margem 2022 do modelo (que é Lula 48,4 − Bolsonaro 43,2 = +5,2 pp, sem somar Tebet/Ciro). Os terceiros (Caiado, Zema, Renan, Marçal) ficam no "outros" (~25% das pesquisas atuais) e são redistribuídos via slider `migOutros` no cálculo do 2º turno.
+
+- **Leitura B — Soma bloco esquerda vs soma bloco direita.** Captura o cenário de unificação da direita no 2T. Resultado: mediana negativa (−5,5 pp), porque a direita fragmentada soma mais que Lula. Mas se aplicada como swing 1T e combinada com `migOutros` no 2T, gera **dupla contagem dos terceiros** — eles entram no swing e são redistribuídos de novo.
+
+**Adotamos Leitura A** por consistência interna do modelo. A unificação da direita emerge da combinação `swing implícito + migOutros baixo` (terceiros migrando majoritariamente para a direita no 2T).
+
+Mediana atual (maio/2026, 12 institutos): **M_pesquisas = +7,1 pp**, swing implícito **+1,9 pp**.
+
+A mediana é preferida à média por robustez a outliers.
+
+### 6.2. Ajustes regionais
+
+Os sliders por região permitem ao usuário incorporar informação local não capturada pelo swing nacional — tipicamente, pesquisas estaduais e regionais específicas. O ajuste `a^R_i` se aplica a todas as UFs da região `R`, e se acumula linearmente sobre o swing nacional.
+
+Importante: os ajustes regionais não pretendem ser um modelo causal de variação política regional. São um parâmetro de calibração que reflete a *crença subjetiva do analista* sobre dinâmicas locais.
+
+---
+
+## 7. Backtest 2018 → 2022
+
+### 7.1. Setup
+
+Aplicamos a equação central usando 2018 como linha de base, com duas premissas alternativas para o swing:
+
+**Modelo A — Swing nacional uniforme:**
+> `m̂^{A}_i = m^{2018}_i + Δ^{obs}_nac`,&nbsp; `Δ^{obs}_nac = +9,5 pp`
+
+**Modelo B — Swing regional observado** (ponderado por votos válidos):
+> `m̂^{B}_i = m^{2018}_i + Δ^{obs}_R(i)`
+
+onde `Δ^{obs}_R` é o swing observado da macrorregião R entre 2018 e 2022:
+
+| Região | Margem 2018 (esq ampla) | Margem 2022 | **Swing observado** |
+|---|---|---|---|
+| Sudeste | −22,0 | −4,9 | **+17,1 pp** |
+| Centro-Oeste | −27,4 | −15,9 | **+11,5 pp** |
+| Sul | −28,7 | −17,8 | **+10,9 pp** |
+| Nordeste | +39,8 | +39,8 | **+0,0 pp** |
+| Norte | +2,5 | +1,6 | **−0,8 pp** |
+
+Swing nacional ponderado por votos válidos: **+9,5 pp**.
+
+Note como o NE praticamente não se moveu — todo o crescimento de Lula em 2022 no NE foi compensação pelo "empréstimo" que Haddad fez para Ciro em 2018. A vitória eleitoral aconteceu no Sudeste e nas duas regiões adjacentes (S, CO).
+
+Comparamos `m̂_i` com `m^{2022}_i` observado em cada modelo. Métricas de erro:
+
+> `MAE = (1/N) · Σ_i |m^{2022}_i − m̂_i|`
+> `RMSE = √[(1/N) · Σ_i (m^{2022}_i − m̂_i)²]`
+
+### 7.2. Resultados
+
+| Métrica | Modelo A (nacional) | Modelo B (regional) | Ganho de B |
+|---|---|---|---|
+| Erro médio absoluto (MAE) | **8,6 pp** | **4,7 pp** | **−3,9 pp (−45%)** |
+| Raiz do erro quadrático médio (RMSE) | 11,2 pp | 9,5 pp | −1,7 pp |
+| Erro máximo | 35,0 pp (Sergipe) | 44,5 pp (Sergipe) | — |
+
+Sergipe é caso especial: virou de margem esq ampla −9,9 em 2018 para Lula +34,7 em 2022. Nenhum modelo nacional ou regional captura esse outlier. Mesmo o regional erra +44,5 pp para SE. Para uso prático, vale aplicar ajuste manual via slider regional do dashboard.
+
+Os cinco maiores erros absolutos do Modelo A (e como o Modelo B se sai):
+
+| UF | 2018 | 2022 real | A est. | A erro | B est. | B erro |
+|---|---|---|---|---|---|---|
+| SE | −22,9 | +34,7 | −0,9 | +35,6 | −6,1 | +40,7 |
+| RR | −45,1 | −46,5 | −23,2 | −23,4 | −37,3 | **−9,2** |
+| MA | +37,0 | +42,8 | +58,9 | −16,1 | +53,8 | **−11,0** |
+| RO | −41,9 | −35,4 | −19,9 | −15,4 | −34,1 | **−1,3** |
+| PA | +5,2 | +12,0 | +27,1 | −15,2 | +13,0 | **−1,1** |
+
+O Modelo B reduz erro drasticamente em UFs cujo swing real ficou próximo do swing regional (RO, PA), mas piora em casos idiossincráticos onde mesmo a média regional não captura (SE virou 22 pp acima do swing do NE).
+
+### 7.3. Discussão
+
+Três padrões emergem:
+
+**(i) Sudeste foi o motor estrutural da virada.** O Sudeste teve o maior swing pró-esquerda (+17,1 pp), praticamente o dobro do nacional. Em SP, Bolsonaro caiu de 53,0% em 2018 para 47,7% em 2022; Haddad+Ciro tinham 27,8% em 2018, Lula sozinho fez 40,9% em 2022 — ou seja, ganhou eleitor próprio, não só "recuperou Ciro". MG seguiu padrão similar. Em peso eleitoral (42% do voto nacional), o SE foi decisivo no resultado de Lula.
+
+**(ii) Nordeste foi estabilidade, não consolidação.** A margem da esquerda ampla no NE em 2018 já era +39,8 pp. Em 2022, exatamente +39,8 pp. **Não houve crescimento real** — Lula apenas re-agregou o voto que Ciro pegou em 2018. Isso desmistifica a narrativa comum de "Lula só ganhou pelo Nordeste".
+
+**(iii) Norte é flat.** Swing nacional zero (−0,8 pp). Estados como AC (margem 2022 = −33,2 vs 2018 esq ampla −38,5) e RR (−46,5 vs −39,8) seguem trajetórias próprias. O Norte é hoje um conjunto heterogêneo onde Bolso domina rural/AC/RR, Lula domina urbano/PA/PI. Não há vetor único.
+
+A implicação operacional é clara: usar swing nacional uniforme produz um *baseline honesto* mas insuficiente. O toggle "Aplicar heterogeneidade regional" do dashboard incorpora essa estrutura via **elasticidade multiplicativa**: cada região recebe `swing_nacional × β_R`, onde `β_R = Δ^{obs}_R / Δ^{obs}_nac`. As elasticidades observadas:
+
+| Região | β (elasticidade) | Leitura |
+|---|---|---|
+| Sudeste | 1,80 | Amplificador — move 1,8× o swing nacional |
+| Centro-Oeste | 1,21 | Acompanha + 21% |
+| Sul | 1,15 | Acompanha + 15% |
+| Norte | −0,08 | Quase imóvel, sinal oposto |
+| Nordeste | 0,00 | Isolante puro |
+
+Vantagens dessa formulação: (i) preserva o invariante "swing nacional zero → reprodução exata de 2022", (ii) mantém a média ponderada por votos próxima ao swing nacional aplicado, e (iii) tem leitura intuitiva para mercado — elasticidade é vocabulário familiar para quem trabalha com sensibilidade de ativos a choques.
+
+Os sliders por região seguem como ajustes finos para sobrepor cenários idiossincráticos (ex: candidato bolsonarista forte em SP/MG empurrando o SE acima da elasticidade base).
+
+---
+
+## 8. Tracker de pesquisas (V3)
+
+A V3 adiciona uma camada de **agregação automatizada de pesquisas presidenciais** que alimenta o swing nacional do modelo principal e fornece leitura probabilística autônoma.
+
+### 8.1. Fonte e escopo
+
+Fonte primária: tabelas wikitable da [página da Wikipedia (EN)](https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Brazilian_presidential_election) sobre pesquisas presidenciais 2026. Quando o scraper falha (mudança de layout, indisponibilidade), o pipeline usa CSVs versionados em `data/pesquisas_2026.csv` como fallback — editáveis manualmente para correções.
+
+Cenário canônico: **Lula vs Flávio Bolsonaro direto** (compatível com a margem Lula − Bolsonaro de 2022 que o modelo principal usa). Outros cenários (Lula vs Tarcísio, vs Caiado, etc.) são registrados no CSV mas não entram na agregação principal.
+
+Snapshot atual (jun/2026): **26 pesquisas** das últimas 6 semanas, **17 institutos** distintos.
+
+### 8.2. Pipeline
+
+Quatro etapas isoladas em `tracker/`:
+
+1. **`ingest.py`** baixa a Wikipedia, identifica a tabela do cenário Lula vs Flávio, extrai linhas em CSV bruto.
+2. **`clean.py`** normaliza: parseia datas, padroniza nomes de instituto via dicionário de aliases (`Datafolha`, `data folha`, `DataFolha` → `Datafolha`), calcula `gap_lula_flavio = pct_lula − pct_flavio`, gera `poll_id` estável via hash de `instituto + data + cenario`.
+3. **`agregador.py`** aplica ponderação composta e gera série temporal + snapshot.
+4. **`probabilidade.py`** transforma o gap corrigido em P(Lula) usando modelo gaussiano.
+
+### 8.3. Agregação ponderada
+
+Para cada pesquisa `p`, define-se o peso composto:
+
+> `w_p = w_recência(p) · w_amostra(p) · w_instituto(p)`
+
+Componentes:
+
+- **`w_recência`** — decaimento exponencial com meia-vida de 14 dias: `w_rec = exp(−ln(2) · dias_atrás / 14)`. Uma pesquisa do dia tem peso 1; de 14 dias atrás, 0,5; de 28 dias, 0,25.
+- **`w_amostra`** — `sqrt(n)` com cap em 3000 (≈ 55). Pesquisas grandes têm mais peso, mas o ganho marginal de uma amostra de 5000 vs 3000 fica limitado.
+- **`w_instituto`** — tabela editável em `tracker/pesos_institutos.csv`. Default 1,0 para todos. Permite penalizar institutos com histórico problemático sem editar código.
+
+O gap agregado é a média ponderada:
+
+> `gap_agregado = Σ_p (gap_p · w_p) / Σ_p w_p`
+
+### 8.4. Correção pelo viés histórico
+
+Em 2022, pesquisas pré-1º turno superestimaram Lula sistematicamente. Calibração:
+
+1. Coletar mediana das pesquisas Lula vs Bolsonaro publicadas entre 17/set e 1/out/2022 (janela pré-1T).
+2. Calcular `viés_2022 = mediana_pesquisas_2022 − margem_real_2022` (Lula 48,43 − Bolsonaro 43,20 = +5,23 pp).
+3. Subtrair o viés do gap agregado de 2026: `gap_corrigido = gap_bruto − viés_2022`.
+
+**Viés calculado (snapshot atual): +2,8 pp.** Pesquisas 2026 são ajustadas por esse valor.
+
+Quando um instituto específico tem ≥ 3 pesquisas pré-1T 2022, calcula-se um viés individual (`bias_por_instituto`); caso contrário, aplica-se o viés agregado como fallback. Atualmente nenhum instituto atinge o mínimo, então o fallback agregado é usado para todos.
+
+**Tratamento experimental.** Calibração em 1 ciclo é amostra pequena. Idealmente compararíamos com 2014 e 2018 para checar consistência do viés. Esta correção é assumida no produto como hipótese plausível, não como fato estilizado.
+
+### 8.5. Probabilidade implícita
+
+Dado o gap corrigido, a probabilidade de Lula vencer no agregado é modelada como uma distribuição gaussiana sobre o gap real desconhecido:
+
+> `P(Lula vence) = Φ(gap_corrigido / σ)`
+
+onde `Φ` é a CDF normal padrão e `σ` representa a incerteza total da estimativa no dia da eleição. Como `σ` é difícil de estimar empiricamente com 1 ciclo de calibração, oferecemos 3 cenários fixos:
+
+| Cenário | σ | Interpretação |
+|---|---|---|
+| Conservador | 8 pp | Pesquisas pouco informativas, alta incerteza |
+| Base | 5 pp | Calibração intermediária, default |
+| Agressivo | 3 pp | Pesquisas muito informativas, baixa incerteza |
+
+Snapshot atual (gap_corrigido = +4,5 pp):
+
+| Cenário | P(Lula) |
+|---|---|
+| Conservador | 72% |
+| Base | **81%** |
+| Agressivo | 93% |
+
+A leitura para mercado: o agregado de pesquisas atual implica Lula favorito, com convicção dependente de quão precisas se acredita serem as pesquisas como sinal sobre a margem real. **Não é previsão eleitoral** — é leitura indicativa do agregado de hoje.
+
+### 8.6. Schema do CSV
+
+```
+poll_id, instituto, contratante, data_inicio_campo, data_fim_campo,
+data_publicacao, amostra, margem_erro, turno, cenario,
+candidato_a, candidato_b, pct_lula, pct_flavio, brancos_nulos, indecisos,
+gap_lula_flavio, fonte_url, observacoes
+```
+
+O CSV é a fonte de verdade depois do `clean`. Correções manuais (instituto mal identificado, data errada, pesquisa inserida à mão) são aplicadas direto no CSV e propagam pelo pipeline na próxima execução de `prep_data.py`.
+
+### 8.7. Limitações específicas do tracker
+
+- **Calibração de viés em 1 ciclo** — amostra estatisticamente fraca; idealmente seriam 2014, 2018 e 2022 combinados.
+- **σ não estimado empiricamente** — os 3 cenários são valores plausíveis, não medidas.
+- **Sem qualidade de instituto modelada** — peso por instituto é parâmetro editável, não calibrado.
+- **Wikipedia como fonte única** — frágil a mudanças de layout; mitigado por fallback no CSV versionado.
+- **Cenário fixo Lula vs Flávio direto** — não captura cenários de unificação da direita ou troca de candidato.
+
+---
+
+## 9. Limitações
+
+**Limitações de premissa do modelo:**
+
+- Swing uniforme não captura swings regionais.
+- A divisão constante de "outros" no 2T é heurística.
+- Não há tratamento de incerteza (intervalos de confiança ausentes).
+- O modelo é estático: não incorpora dinâmica temporal (efeito convenção, debates, eventos de cauda).
+
+**Limitações dos dados:**
+
+- Resultados 2018 estão aproximados a inteiros — refinar com dados do TSE em granularidade decimal.
+- Pesquisas dependem de input manual semanal — automação via API de agregadores seria preferível.
+- Eleitorado por UF está aproximado — usar TSE em vez de estimativas.
+
+**Limitações analíticas:**
+
+- O backtest 2018 → 2022 é apenas um ciclo. Validação robusta requer 2010 → 2014 e 2014 → 2018 também.
+- O modelo é puramente reduzido — não há features explicativas (PIB per capita, transferências, demografia).
+- A classificação em cinco faixas é convencional. Limiares alternativos mudariam interpretações.
+
+---
+
+## 10. Roadmap
+
+**V2 (concluída):**
+- [x] Dashboard interativo Quarto + Observable.
+- [x] Backtest 2018 → 2022 com decomposição por UF.
+- [x] **Modelo B (swing regional)** — MAE 4,7 pp, ganho de 45% sobre Modelo A.
+- [x] Toggle "Aplicar heterogeneidade regional" no Simulador (via elasticidade multiplicativa).
+- [x] Projeção de 2º turno parametrizada (slider migOutros).
+- [x] Decomposição regional da margem nacional.
+- [x] Card de pesquisas alimentado por JSON manual (12 institutos, mediana +7,1 pp).
+- [x] Convenção visual brasileira: vermelho = esquerda, azul = direita.
+- [x] Publicação automatizada via GitHub Actions + Pages.
+
+**V3 (próximos blocos):**
+- [ ] Multi-backtest: incluir 2010 → 2014 e 2014 → 2018 para validar robustez do ganho de B.
+- [ ] Bandas de incerteza por UF (bootstrap sobre erros do backtest).
+- [ ] Cards de cenários pré-definidos (cenário base, downside, upside).
+- [ ] Modelagem de migração 2T por UF (em vez de uniforme nacional).
+
+**V4 (modelo sério):**
+- [ ] Regressão de margem estimada como função de margem prévia + variação macroeconômica por UF (PIB, desemprego, transferências federais, programas sociais).
+- [ ] Modelo bayesiano combinando prior do swing uniforme com likelihood de pesquisas estaduais.
+- [ ] Camada de impacto macro: tradução de cenários eleitorais em prêmio de risco fiscal (CDS), curva de juros DI e câmbio.
+
+---
+
+## Apêndice A — Glossário de variáveis
+
+| Nome no código | Notação | Tipo | Significado | Exemplo |
+|---|---|---|---|---|
+| `resultados[i].margem_2022` | `m^{2022}_i` | constante | Margem real Lula − Bolso por UF em 2022 (pp) | BA: +56, SP: −12 |
+| `resultados[i].lula_2022` | `l^{2022}_i` | constante | % Lula por UF em 2022 | BA: 73, SP: 36 |
+| `resultados[i].bolso_2022` | `b^{2022}_i` | constante | % Bolsonaro por UF em 2022 | BA: 17, SP: 48 |
+| `resultados[i].votos_validos` | `v_i` | constante | Votos válidos por UF em 2022 (peso) | SP: 22,4 mi |
+| `margem_2022_nacional` | `m^{2022}_nac` | constante | Margem nacional 1T 2022 | +5,2 pp |
+| `swingNac` | `s` (slider) | parâmetro | Swing nacional do usuário | default: 0 |
+| `usarPesquisa` | (toggle) | parâmetro | Substituir slider por swing das pesquisas | default: falso |
+| `migOutros` | `f` (slider) | parâmetro | Fração dos "Outros" pra esquerda no 2T | default: 0,60 |
+| `ajN, ajNE, ajCO, ajSE, ajS` | `a^R_i` | parâmetro | Ajuste extra por macrorregião | default: 0 cada |
+| `swingEfetivo` | — | derivada | Swing efetivamente aplicado | calculada |
+| `margens[i].margem_estimada` | `m̂_i` | derivada | Margem estimada por UF | calculada |
+| `margens[i].classe` | — | derivada | Classe de competitividade (5 faixas) | "competitivo" |
+| `counts` | — | derivada | Contagem de UFs por classe | `{solido_esq: 10, ...}` |
+| `resumo_nacional.lula` | `L̂_nac` | derivada | % Lula nacional estimado | 46,2% |
+| `resumo_nacional.margem_nacional` | `M̂_nac` | derivada | Margem nacional estimada | +5,3 pp |
+| `projecao_2t.margem` | `M̂^{2T}` | derivada | Margem nacional do 2T | +7,9 pp |
+| `decomposicao_regional[R].contribuicao_pp` | `c_R` | derivada | Contribuição da região para `M̂_nac` | varia |
+| `pesquisas.margem` | `M_pesquisas` | externa | Mediana das pesquisas | varia |
+| `backtest.mae_pp` | MAE | externa | Erro absoluto médio do backtest | 10,0 pp |
+
+---
+
+## Apêndice B — Fluxo de dados
+
+```
+                           ┌─────────────────────────┐
+                           │  data/resultados_2022.py│
+                           │  data/resultados_2018.py│
+                           │  data/pesquisas_manual.json
+                           └────────────┬────────────┘
+                                        │
+                                        ▼
+                              ┌──────────────────┐
+                              │  prep_data.py    │
+                              │  (orquestrador)  │
+                              └────────┬─────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              ▼                        ▼                        ▼
+   ┌──────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+   │ resultados_2022  │  │ backtest_2018_2022   │  │ pesquisas_mediana    │
+   │      .json       │  │      .json           │  │      .json           │
+   └────────┬─────────┘  └────────┬─────────────┘  └────────┬─────────────┘
+            │                     │                         │
+            └─────────────────────┼─────────────────────────┘
+                                  │
+                                  ▼
+                       ┌──────────────────────┐
+                       │      index.qmd       │
+                       │ (Quarto + ObservableJS)
+                       └──────────┬───────────┘
+                                  │
+                                  ▼
+                       ┌──────────────────────┐
+                       │   docs/  (HTML)      │
+                       │   GitHub Pages       │
+                       └──────────────────────┘
+```
+
+---
+
+## Apêndice C — Reprodutibilidade
+
+Para reproduzir o dashboard a partir de uma cópia limpa do repositório:
+
+```
+pip install -r requirements.txt
+python prep_data.py          # regenera todos os JSONs
+quarto preview               # subir dashboard local (com auto-reload)
+quarto render                # render estático em docs/
+```
+
+Atualização semanal:
+1. Editar `data/pesquisas_manual.json` adicionando pesquisas novas.
+2. Rodar `python prep_data.py`.
+3. Verificar localmente com `quarto preview`.
+4. Commit + push. GitHub Actions republica em ~3 minutos.
+
+---
+
+## Referências
+
+- Butler, D. & Stokes, D. (1969). *Political Change in Britain.*
+- Fiorina, M. (1981). *Retrospective Voting in American National Elections.*
+- Gelman, A. & Hill, J. (2007). *Data Analysis Using Regression and Multilevel/Hierarchical Models.*
+- TSE — Repositório de dados eleitorais: https://dadosabertos.tse.jus.br/
+- IBGE — API de malhas geográficas: https://servicodados.ibge.gov.br/api/v3/malhas/
+
+---
+
+*Este documento é versionado junto com o código. Última atualização: `git log -1 METODOLOGIA.md`.*
