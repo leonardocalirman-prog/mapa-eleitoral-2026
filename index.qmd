@@ -16,6 +16,9 @@ resultados = FileAttachment("data/resultados_2022.json").json()
 geojson    = FileAttachment("data/br_states.geojson").json()
 pesquisas  = FileAttachment("data/pesquisas_mediana.json").json()
 backtest   = FileAttachment("data/backtest_2018_2022.json").json()
+tracker_agg   = FileAttachment("data/tracker_agregado.json").json()
+tracker_serie = FileAttachment("data/tracker_serie.json").json()
+house_effects = FileAttachment("data/house_effects.json").json()
 margem_2022_nacional = 5.2
 ```
 
@@ -31,6 +34,17 @@ THRESHOLDS = [
 ]
 COR_ESQ = "#C8102E"
 COR_DIR = "#1F3A8A"
+```
+
+
+```{ojs}
+//| output: false
+// Strings pre-computadas para os valueboxes do Tracker.
+// Inline `{ojs} ...` engasga com .toFixed() em algumas versoes do Quarto.
+tracker_gap_bruto_str = tracker_agg.gap_bruto.toFixed(1) + " pp"
+tracker_gap_corrigido_str = tracker_agg.gap_corrigido.toFixed(1) + " pp"
+tracker_ultima_data_str = tracker_agg.ultima_data.slice(8, 10) + "/" + tracker_agg.ultima_data.slice(5, 7)
+tracker_n_pesquisas_str = tracker_agg.n_pesquisas + " pesquisas"
 ```
 
 # Simulador
@@ -413,4 +427,121 @@ Inputs.table(
   })),
   { rows: 27, height: 480 }
 )
+```
+
+# Tracker de Pesquisas
+
+*Esta aba agrega pesquisas presidenciais 2026 (cenário Lula vs Flávio direto) com média ponderada por recência, tamanho de amostra e instituto. Aplica correção experimental de viés histórico calibrada nas pesquisas finais pré-1T de 2022. A probabilidade implícita usa modelo gaussiano simples com três cenários de incerteza — leitura indicativa, não previsão definitiva.*
+
+## Row {height="130px"}
+
+::: {.valuebox icon="bar-chart-line-fill" color="primary"}
+Gap bruto Lula − Flávio (pp)
+
+`{ojs} tracker_gap_bruto_str`
+:::
+
+::: {.valuebox icon="sliders" color="info"}
+Gap corrigido (house effects)
+
+`{ojs} tracker_gap_corrigido_str`
+:::
+
+::: {.valuebox icon="dice-3-fill" color="warning"}
+P(Lula) — cenário base (σ=5pp)
+
+`{ojs} tracker_agg.probabilidades.base + "%"`
+:::
+
+::: {.valuebox icon="calendar3" color="secondary"}
+Última pesquisa · N
+
+`{ojs} tracker_ultima_data_str`
+:::
+
+## Row
+
+### Column {width="65%"}
+
+#### Linha temporal: gap Lula − Flávio
+
+```{ojs}
+{
+  const pontos = tracker_serie.pontos.map(p => Object.assign({}, p, {data: new Date(p.data)}))
+  const rolling = tracker_serie.agregado_rolling.map(p => Object.assign({}, p, {data: new Date(p.data)}))
+  return Plot.plot({
+    width: 640, height: 380,
+    marginLeft: 50,
+    marginRight: 110,
+    x: { type: "time", label: "Data da pesquisa" },
+    y: { label: "Gap Lula − Flávio (pp)", grid: true, domain: [-5, 20] },
+    color: { legend: true, columns: 5 },
+    marks: [
+      Plot.ruleY([0], { stroke: "#999" }),
+      Plot.dot(pontos, {
+        x: "data", y: "gap_bruto", fill: "instituto", r: 5, opacity: 0.85,
+        title: d => d.instituto + "  (" + d.data.toISOString().slice(0,10) + ")"
+          + "\nGap bruto:     " + (d.gap_bruto >= 0 ? "+" : "") + d.gap_bruto.toFixed(1) + " pp"
+          + "\nGap corrigido: " + (d.gap_corrigido >= 0 ? "+" : "") + d.gap_corrigido.toFixed(1) + " pp"
+          + (d.amostra ? "\nAmostra: " + d.amostra : "")
+      }),
+      Plot.line(rolling, {
+        x: "data", y: "gap_corrigido",
+        stroke: "black", strokeWidth: 2.5,
+      }),
+      Plot.dot(rolling, {
+        x: "data", y: "gap_corrigido",
+        fill: "black", r: 2.5,
+      })
+    ]
+  })
+}
+```
+
+**●** Pontos coloridos = pesquisas individuais (gap bruto, sem correção). &nbsp;&nbsp; **━** Linha preta = agregado ponderado (rolling 30d, com bias 2022 corrigido) — é a leitura do modelo.
+
+### Column {width="35%"}
+
+#### Probabilidades por cenário {height="50%"}
+
+```{ojs}
+{
+  const tabela = [
+    {cenario: "Conservador", sigma: tracker_agg.sigmas_cenarios.conservador + " pp", p_lula: tracker_agg.probabilidades.conservador + "%"},
+    {cenario: "Base",        sigma: tracker_agg.sigmas_cenarios.base + " pp",        p_lula: tracker_agg.probabilidades.base + "%"},
+    {cenario: "Agressivo",   sigma: tracker_agg.sigmas_cenarios.agressivo + " pp",   p_lula: tracker_agg.probabilidades.agressivo + "%"},
+  ]
+  return Inputs.table(tabela, {
+    columns: ["cenario", "sigma", "p_lula"],
+    header: {cenario: "Cenário", sigma: "Incerteza σ", p_lula: "P(Lula)"},
+    rows: 3, height: 140,
+  })
+}
+```
+
+
+#### House effects (viés 2022) {height="50%"}
+
+```{ojs}
+{
+  const por_inst = house_effects.por_instituto || {}
+  const linhas = Object.entries(por_inst).map(([inst, info]) => ({
+    instituto: inst,
+    bias: (info.bias_pp >= 0 ? "+" : "") + info.bias_pp.toFixed(1) + " pp",
+    n: info.n_pesquisas,
+  }))
+  if (linhas.length === 0) {
+    return md`**Bias agregado aplicado:** ${house_effects.bias_agregado >= 0 ? "+" : ""}${house_effects.bias_agregado.toFixed(1)} pp.
+
+*Nenhum instituto tem ≥ ${house_effects.min_pesquisas_por_instituto} pesquisas pré-1T 2022 para bias individual. Todas as pesquisas 2026 são ajustadas pelo bias agregado.*
+
+Mediana das pesquisas finais 2022: **${house_effects.mediana_geral_2022 >= 0 ? "+" : ""}${house_effects.mediana_geral_2022} pp**.  Real: **+${house_effects.margem_real_2022} pp**.`
+ 
+  }
+  return Inputs.table(linhas, {
+    columns: ["instituto", "bias", "n"],
+    header: {instituto: "Instituto", bias: "Viés 2022", n: "N pré-1T"},
+    rows: linhas.length, height: 140,
+  })
+}
 ```
