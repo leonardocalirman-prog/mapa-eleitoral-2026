@@ -1,4 +1,4 @@
-# Nowcast Eleitoral 2026 — Metodologia
+[# Nowcast Eleitoral 2026 — Metodologia
 
 *Documento técnico-metodológico do projeto `mapa-eleitoral-2026`.*
 *Autor: Leonardo Wandersman. Versão 0.2 — Maio/2026.*
@@ -486,7 +486,7 @@ Atualização semanal:
 - Butler, D. & Stokes, D. (1969). *Political Change in Britain.*
 - Fiorina, M. (1981). *Retrospective Voting in American National Elections.*
 - Gelman, A. & Hill, J. (2007). *Data Analysis Using Regression and Multilevel/Hierarchical Models.*
-- TSE — Repositório de dados eleitorais: https://dadosabertos.tse.jus.br/
+- TSE — Repositório de dados eleitorais: https://dadosabertos.tse.jus.br/](https://github.com/leonardocalirman-prog/mapa-eleitoral-2026/blob/main/prep_data.py)
 - IBGE — API de malhas geográficas: https://servicodados.ibge.gov.br/api/v3/malhas/
 
 ---
