@@ -252,7 +252,103 @@ Os sliders por região seguem como ajustes finos para sobrepor cenários idiossi
 
 ---
 
-## 8. Limitações
+## 8. Tracker de pesquisas (V3)
+
+A V3 adiciona uma camada de **agregação automatizada de pesquisas presidenciais** que alimenta o swing nacional do modelo principal e fornece leitura probabilística autônoma.
+
+### 8.1. Fonte e escopo
+
+Fonte primária: tabelas wikitable da [página da Wikipedia (EN)](https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Brazilian_presidential_election) sobre pesquisas presidenciais 2026. Quando o scraper falha (mudança de layout, indisponibilidade), o pipeline usa CSVs versionados em `data/pesquisas_2026.csv` como fallback — editáveis manualmente para correções.
+
+Cenário canônico: **Lula vs Flávio Bolsonaro direto** (compatível com a margem Lula − Bolsonaro de 2022 que o modelo principal usa). Outros cenários (Lula vs Tarcísio, vs Caiado, etc.) são registrados no CSV mas não entram na agregação principal.
+
+Snapshot atual (jun/2026): **26 pesquisas** das últimas 6 semanas, **17 institutos** distintos.
+
+### 8.2. Pipeline
+
+Quatro etapas isoladas em `tracker/`:
+
+1. **`ingest.py`** baixa a Wikipedia, identifica a tabela do cenário Lula vs Flávio, extrai linhas em CSV bruto.
+2. **`clean.py`** normaliza: parseia datas, padroniza nomes de instituto via dicionário de aliases (`Datafolha`, `data folha`, `DataFolha` → `Datafolha`), calcula `gap_lula_flavio = pct_lula − pct_flavio`, gera `poll_id` estável via hash de `instituto + data + cenario`.
+3. **`agregador.py`** aplica ponderação composta e gera série temporal + snapshot.
+4. **`probabilidade.py`** transforma o gap corrigido em P(Lula) usando modelo gaussiano.
+
+### 8.3. Agregação ponderada
+
+Para cada pesquisa `p`, define-se o peso composto:
+
+> `w_p = w_recência(p) · w_amostra(p) · w_instituto(p)`
+
+Componentes:
+
+- **`w_recência`** — decaimento exponencial com meia-vida de 14 dias: `w_rec = exp(−ln(2) · dias_atrás / 14)`. Uma pesquisa do dia tem peso 1; de 14 dias atrás, 0,5; de 28 dias, 0,25.
+- **`w_amostra`** — `sqrt(n)` com cap em 3000 (≈ 55). Pesquisas grandes têm mais peso, mas o ganho marginal de uma amostra de 5000 vs 3000 fica limitado.
+- **`w_instituto`** — tabela editável em `tracker/pesos_institutos.csv`. Default 1,0 para todos. Permite penalizar institutos com histórico problemático sem editar código.
+
+O gap agregado é a média ponderada:
+
+> `gap_agregado = Σ_p (gap_p · w_p) / Σ_p w_p`
+
+### 8.4. Correção pelo viés histórico
+
+Em 2022, pesquisas pré-1º turno superestimaram Lula sistematicamente. Calibração:
+
+1. Coletar mediana das pesquisas Lula vs Bolsonaro publicadas entre 17/set e 1/out/2022 (janela pré-1T).
+2. Calcular `viés_2022 = mediana_pesquisas_2022 − margem_real_2022` (Lula 48,43 − Bolsonaro 43,20 = +5,23 pp).
+3. Subtrair o viés do gap agregado de 2026: `gap_corrigido = gap_bruto − viés_2022`.
+
+**Viés calculado (snapshot atual): +2,8 pp.** Pesquisas 2026 são ajustadas por esse valor.
+
+Quando um instituto específico tem ≥ 3 pesquisas pré-1T 2022, calcula-se um viés individual (`bias_por_instituto`); caso contrário, aplica-se o viés agregado como fallback. Atualmente nenhum instituto atinge o mínimo, então o fallback agregado é usado para todos.
+
+**Tratamento experimental.** Calibração em 1 ciclo é amostra pequena. Idealmente compararíamos com 2014 e 2018 para checar consistência do viés. Esta correção é assumida no produto como hipótese plausível, não como fato estilizado.
+
+### 8.5. Probabilidade implícita
+
+Dado o gap corrigido, a probabilidade de Lula vencer no agregado é modelada como uma distribuição gaussiana sobre o gap real desconhecido:
+
+> `P(Lula vence) = Φ(gap_corrigido / σ)`
+
+onde `Φ` é a CDF normal padrão e `σ` representa a incerteza total da estimativa no dia da eleição. Como `σ` é difícil de estimar empiricamente com 1 ciclo de calibração, oferecemos 3 cenários fixos:
+
+| Cenário | σ | Interpretação |
+|---|---|---|
+| Conservador | 8 pp | Pesquisas pouco informativas, alta incerteza |
+| Base | 5 pp | Calibração intermediária, default |
+| Agressivo | 3 pp | Pesquisas muito informativas, baixa incerteza |
+
+Snapshot atual (gap_corrigido = +4,5 pp):
+
+| Cenário | P(Lula) |
+|---|---|
+| Conservador | 72% |
+| Base | **81%** |
+| Agressivo | 93% |
+
+A leitura para mercado: o agregado de pesquisas atual implica Lula favorito, com convicção dependente de quão precisas se acredita serem as pesquisas como sinal sobre a margem real. **Não é previsão eleitoral** — é leitura indicativa do agregado de hoje.
+
+### 8.6. Schema do CSV
+
+```
+poll_id, instituto, contratante, data_inicio_campo, data_fim_campo,
+data_publicacao, amostra, margem_erro, turno, cenario,
+candidato_a, candidato_b, pct_lula, pct_flavio, brancos_nulos, indecisos,
+gap_lula_flavio, fonte_url, observacoes
+```
+
+O CSV é a fonte de verdade depois do `clean`. Correções manuais (instituto mal identificado, data errada, pesquisa inserida à mão) são aplicadas direto no CSV e propagam pelo pipeline na próxima execução de `prep_data.py`.
+
+### 8.7. Limitações específicas do tracker
+
+- **Calibração de viés em 1 ciclo** — amostra estatisticamente fraca; idealmente seriam 2014, 2018 e 2022 combinados.
+- **σ não estimado empiricamente** — os 3 cenários são valores plausíveis, não medidas.
+- **Sem qualidade de instituto modelada** — peso por instituto é parâmetro editável, não calibrado.
+- **Wikipedia como fonte única** — frágil a mudanças de layout; mitigado por fallback no CSV versionado.
+- **Cenário fixo Lula vs Flávio direto** — não captura cenários de unificação da direita ou troca de candidato.
+
+---
+
+## 9. Limitações
 
 **Limitações de premissa do modelo:**
 
@@ -275,7 +371,7 @@ Os sliders por região seguem como ajustes finos para sobrepor cenários idiossi
 
 ---
 
-## 9. Roadmap
+## 10. Roadmap
 
 **V2 (concluída):**
 - [x] Dashboard interativo Quarto + Observable.
